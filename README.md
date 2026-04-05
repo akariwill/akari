@@ -18,6 +18,17 @@
   <i>"おかえりなさい、あなた。"</i>
 </p>
 
+---
+
+## Screenshots
+
+<p align="center">
+  <img src="data/welcome.png" alt="Welcome Page" width="45%" style="border-radius: 8px; margin-right: 10px; border: 1px solid #ec4899;"/>
+  <img src="data/home.png" alt="Home Page" width="45%" style="border-radius: 8px; border: 1px solid #ec4899;"/>
+</p>
+
+---
+
 <p align="center">
   AKARI connects to your Apple Calendar, Mail, and Notes. It can browse the web, spawn Claude Code sessions to build entire projects, and plan your day -- all through natural voice conversation.
 </p>
