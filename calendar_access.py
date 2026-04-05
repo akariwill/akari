@@ -1,5 +1,5 @@
 """
-JARVIS Calendar Access — read Apple Calendar via AppleScript.
+AKARI Calendar Access — read Apple Calendar via AppleScript.
 
 Strategy: fetch all events per-calendar in parallel (bulk property access),
 filter dates in Python. Results cached and refreshed in background.
@@ -12,7 +12,7 @@ import time as _time
 from datetime import datetime, timedelta
 from pathlib import Path
 
-log = logging.getLogger("jarvis.calendar")
+log = logging.getLogger("akari.calendar")
 
 # Calendars to scan — set CALENDAR_ACCOUNTS env var to a comma-separated list,
 # or leave empty to auto-discover ALL calendars from Apple Calendar.
@@ -245,7 +245,7 @@ def format_events_for_context(events: list[dict]) -> str:
 def format_schedule_summary(events: list[dict]) -> str:
     """Format a brief voice-friendly summary of the schedule."""
     if not events:
-        return "Your schedule is clear today, sir."
+        return "Your schedule is clear today!"
 
     count = len(events)
     if count == 1:

@@ -1,5 +1,5 @@
 """
-JARVIS Mail Access — READ-ONLY access to Apple Mail.
+AKARI Mail Access — READ-ONLY access to Apple Mail.
 
 Any accounts synced to Mail.app (Gmail, iCloud, Exchange, etc.)
 are automatically available. No OAuth needed.
@@ -12,7 +12,7 @@ import asyncio
 import logging
 from datetime import datetime
 
-log = logging.getLogger("jarvis.mail")
+log = logging.getLogger("akari.mail")
 
 _mail_launched = False
 
@@ -348,7 +348,7 @@ def format_unread_summary(unread: dict) -> str:
     """Format unread counts for voice."""
     total = unread["total"]
     if total == 0:
-        return "Inbox is clear, sir. No unread messages."
+        return "Inbox is clear! No unread messages."
 
     parts = []
     for acct, count in unread["accounts"].items():
@@ -385,7 +385,7 @@ def format_messages_for_context(messages: list[dict], label: str = "Recent email
 def format_messages_for_voice(messages: list[dict]) -> str:
     """Format messages for voice response."""
     if not messages:
-        return "No messages to report, sir."
+        return "No messages to report!"
 
     count = len(messages)
     if count == 1:

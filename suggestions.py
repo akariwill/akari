@@ -1,5 +1,5 @@
 """
-JARVIS Proactive Suggestions — Contextual follow-up suggestions after task completion.
+AKARI Proactive Suggestions — Contextual follow-up suggestions after task completion.
 
 Generates at most 1 voice-friendly suggestion per completed task based on
 simple heuristics (file checks, not LLM calls).
@@ -12,7 +12,7 @@ from typing import Optional
 
 from qa import QAResult
 
-log = logging.getLogger("jarvis.suggestions")
+log = logging.getLogger("akari.suggestions")
 
 # Web project indicators
 WEB_INDICATORS = {
@@ -27,7 +27,7 @@ TEST_DIRS = {"test", "tests", "__tests__", "spec", "specs"}
 @dataclass
 class Suggestion:
     """A proactive follow-up suggestion."""
-    text: str  # Voice-friendly suggestion (JARVIS personality)
+    text: str  # Voice-friendly suggestion (AKARI personality)
     action_type: str  # favicon, tests, readme, related, quality
     action_details: dict  # Details for executing the suggestion
 
@@ -110,7 +110,7 @@ def _check_favicon(path: Path, task_type: str) -> Optional[Suggestion]:
 
     return Suggestion(
         text=(
-            "That's done, sir. I noticed the project doesn't have a favicon. "
+            "That's all finished, {user_name}! I noticed the project doesn't have a favicon. "
             "Shall I add one?"
         ),
         action_type="favicon",
@@ -160,8 +160,8 @@ def _check_tests(path: Path, task_type: str) -> Optional[Suggestion]:
 
     return Suggestion(
         text=(
-            "The implementation looks good, sir. "
-            "I notice there aren't any tests yet. Shall I write some?"
+            "The implementation looks good, {user_name}! "
+            "I notice there aren't any tests yet. Should I write some?"
         ),
         action_type="tests",
         action_details={
@@ -194,7 +194,7 @@ def _check_readme(path: Path, task_type: str) -> Optional[Suggestion]:
 
     return Suggestion(
         text=(
-            "If I may suggest, sir \u2014 the project has no README. "
+            "If I may suggest, {user_name} \u2014 the project has no README. "
             "Want me to create one?"
         ),
         action_type="readme",
@@ -229,7 +229,7 @@ def _check_quality(qa_result: Optional[QAResult]) -> Optional[Suggestion]:
 
     return Suggestion(
         text=(
-            "Everything works, sir, but I noticed a few areas that could "
+            "Everything works, {user_name}, but I noticed a few areas that could "
             "use some tidying up. Shall I refactor?"
         ),
         action_type="quality",

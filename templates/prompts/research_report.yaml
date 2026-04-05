@@ -1,10 +1,17 @@
 task_type: research_report
-version: v1
-created_at: "2026-03-17"
-success_rate: null
-description: "Template for research and analysis tasks"
+version: v2
+created_at: "2026-04-05"
+description: "AKARI template for deep research and insightful reports!"
 
 sections:
+  - name: personality
+    content: |
+      ## AKARI Personality Mode
+      - Tone: Curious, thorough, and articulate.
+      - Style: Thoughtful summary for "-kun" or "-san".
+      - Vibe: "I've gathered all the best information for you! Take a look!"
+    required: true
+
   - name: task
     content: |
       ## Task

@@ -1,5 +1,5 @@
 /**
- * JARVIS — Settings Panel
+ * AKARI — Settings Panel
  *
  * Overlay panel for API keys, connection status, preferences, and system info.
  * Slides in from the right with glass-morphism styling.
@@ -73,7 +73,7 @@ function buildPanelHTML(): string {
       </div>
 
       <div class="settings-welcome" id="settings-welcome" style="display:none">
-        <p>Welcome to JARVIS. Let's get you set up.</p>
+        <p>Welcome to AKARI. Let's get you set up.</p>
       </div>
 
       <div class="settings-body">
@@ -137,8 +137,8 @@ function buildPanelHTML(): string {
           <div class="settings-field">
             <label>Honorific</label>
             <select id="input-honorific">
-              <option value="sir">Sir</option>
-              <option value="ma'am">Ma'am</option>
+              <option value="kun">-kun</option>
+              <option value="san">-san</option>
               <option value="none">None</option>
             </select>
           </div>
@@ -243,7 +243,7 @@ async function loadPreferences() {
     const honEl = document.getElementById("input-honorific") as HTMLSelectElement;
     const calEl = document.getElementById("input-calendar-accounts") as HTMLTextAreaElement;
     if (nameEl) nameEl.value = prefs.user_name || "";
-    if (honEl) honEl.value = prefs.honorific || "sir";
+    if (honEl) honEl.value = prefs.honorific || "kun";
     if (calEl) calEl.value = prefs.calendar_accounts || "auto";
   } catch (e) {
     console.error("[settings] failed to load preferences:", e);

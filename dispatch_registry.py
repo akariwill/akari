@@ -1,7 +1,7 @@
 """
-JARVIS Dispatch Registry — tracks all active and recent project builds/dispatches.
+AKARI Dispatch Registry — tracks all active and recent project builds/dispatches.
 
-Persists to SQLite so JARVIS always knows what he's working on,
+Persists to SQLite so AKARI always knows what he's working on,
 what just finished, and what the user is likely referring to.
 """
 
@@ -10,9 +10,9 @@ import sqlite3
 import time
 from pathlib import Path
 
-log = logging.getLogger("jarvis.dispatch")
+log = logging.getLogger("akari.dispatch")
 
-DB_PATH = Path(__file__).parent / "data" / "jarvis.db"
+DB_PATH = Path(__file__).parent / "data" / "akari.db"
 
 
 def _get_db() -> sqlite3.Connection:

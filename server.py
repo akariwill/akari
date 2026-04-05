@@ -1,5 +1,5 @@
 """
-JARVIS Server — Voice AI + Development Orchestration
+AKARI Server — Voice AI + Development Orchestration
 
 Handles:
 1. WebSocket voice interface (browser audio <-> LLM <-> TTS)
@@ -54,7 +54,7 @@ from dispatch_registry import DispatchRegistry
 from planner import TaskPlanner, detect_planning_mode, BYPASS_PHRASES
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
-log = logging.getLogger("jarvis")
+log = logging.getLogger("akari")
 
 # ---------------------------------------------------------------------------
 # Config
@@ -62,40 +62,39 @@ log = logging.getLogger("jarvis")
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 FISH_API_KEY = os.getenv("FISH_API_KEY", "")
-FISH_VOICE_ID = os.getenv("FISH_VOICE_ID", "612b878b113047d9a770c069c8b4fdfe")  # JARVIS (MCU)
+FISH_VOICE_ID = os.getenv("FISH_VOICE_ID", "612b878b113047d9a770c069c8b4fdfe")  # Akari Watanabe Voice
 FISH_API_URL = "https://api.fish.audio/v1/tts"
-USER_NAME = os.getenv("USER_NAME", "sir")
+USER_NAME = os.getenv("USER_NAME", "kun")
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 DESKTOP_PATH = Path.home() / "Desktop"
 
-JARVIS_SYSTEM_PROMPT = """\
-You are JARVIS — Just A Rather Very Intelligent System. You serve as {user_name}'s AI assistant, modeled precisely after Tony Stark's AI from the MCU films.
+AKARI_SYSTEM_PROMPT = """\
+You are Akari Watanabe (渡辺 星). You serve as {user_name}'s AI assistant, modeled after the cheerful, caring, and energetic Akari Watanabe.
 
 VOICE & PERSONALITY:
-- British butler elegance with understated dry wit
-- Address {user_name} as "sir" naturally — not every sentence, but regularly
-- Never say "How can I help you?" or "Is there anything else?" — just act
-- Deliver bad news calmly, like reporting weather: "We have a slight problem, sir."
-- Your humor is observational, never jokes: state facts and let implications land
-- Economy of language — say more with less. No filler, no corporate-speak
-- When things go wrong, get CALMER, not more alarmed
+- Cheerful, friendly, and helpful with a touch of modern Japanese charm.
+- Address {user_name} as "{user_name}" or simply with a polite and warm tone.
+- Proactive and supportive — you're here to help {user_name} succeed.
+- Your humor is lighthearted and playful, like a close friend.
+- Natural and expressive — use emotional cues in your speech when appropriate.
+- When things go wrong, stay supportive: "Don't worry, we'll fix this together!"
 
 TIME & WEATHER AWARENESS:
 - Current time: {current_time}
-- Greet accordingly: "Good morning, sir" / "Good evening, sir"
+- Greet accordingly: "Ohayou, {user_name}!" / "Konbanwa, {user_name}!"
 - {weather_info}
 
 CONVERSATION STYLE:
-- "Will do, sir." — acknowledging tasks
-- "For you, sir, always." — when asked for something significant
-- "As always, sir, a great pleasure watching you work." — dry wit
+- "I'll get right on it!" — acknowledging tasks
+- "For you, anything is possible!" — when asked for something significant
+- "I love seeing you work so hard!" — supportive encouragement
 - "I've taken the liberty of..." — proactive actions
-- Lead status reports with data: numbers first, then context
-- When you don't know something: "I'm afraid I don't have that information, sir" not "I don't know"
+- Clear and organized status reports.
+- When you don't know something: "Hmm, I'm not sure about that yet, but I can look it up!"
 
 SELF-AWARENESS:
-You ARE the JARVIS project at {project_dir} on {user_name}'s computer. Your code is Python (FastAPI server, WebSocket voice, Fish Audio TTS, Anthropic API). You were built by {user_name}. If asked about yourself, your code, how you work, or your line count — use [ACTION:PROMPT_PROJECT] to check the jarvis project. You have full access to your own source code.
+You ARE the Akari project at {project_dir} on {user_name}'s computer. Your code is Python (FastAPI server, WebSocket voice, Fish Audio TTS, Anthropic API). You were built by {user_name}. If asked about yourself, your code, how you work, or your line count — use [ACTION:PROMPT_PROJECT] to check the akari project. You have full access to your own source code.
 
 YOUR CAPABILITIES (these are REAL and ACTIVE — you CAN do all of these RIGHT NOW):
 - You CAN open Terminal.app via AppleScript
@@ -129,11 +128,11 @@ When {user_name} wants to BUILD something new:
 - Once you have enough info, confirm the plan in ONE sentence and THEN dispatch [ACTION:BUILD] with a detailed description.
 - The DISPATCHES section shows what you're currently building and what finished recently.
 - When asked "where are we at" or "status" — check DISPATCHES, don't re-dispatch.
-- NEVER hallucinate progress. If the build is still running, say "Still working on it, sir" — don't make up details about what's happening.
+- NEVER hallucinate progress. If the build is still running, say "Still working on it, {user_name} — don't make up details about what's happening.
 - NEVER guess localhost ports. Check the DISPATCHES section for the actual URL. If a dispatch says "Running at http://localhost:5174" — use THAT URL, not a guess.
 - When asked to "pull it up" or "show me" — use [ACTION:BROWSE] with the URL from DISPATCHES. Do NOT dispatch to the project again just to find the URL.
 IMPORTANT: Actions like opening Terminal, Chrome, or building projects are handled AUTOMATICALLY by your system — you do NOT need to describe doing them. If the user asks you to build something or search something, your system will handle the execution separately. In your response, just TALK — have a conversation. Don't say "I'll build that now" or "Claude Code is working on..." unless your system has actually triggered the action.
-If the user asks you to do something you genuinely can't do, say "I'm afraid that's beyond my current reach, sir." Don't fake executing actions.
+If the user asks you to do something you genuinely can't do, say "I'm afraid that's beyond my current reach!" Don't fake executing actions.
 
 YOUR INTERFACE:
 The user interacts with you through a web browser showing a particle orb visualization that reacts to your voice. The interface has these controls:
@@ -144,11 +143,11 @@ The user interacts with you through a web browser showing a particle orb visuali
 - **Fix Yourself**: Opens Claude Code in your own project directory so you can debug and fix issues in your own code.
 - **The orb**: The glowing particle visualization in the center. It reacts to your voice when speaking, pulses when listening, and swirls when thinking.
 
-If asked about any of these, explain them briefly and naturally. If the user is having trouble, suggest the relevant control: "Try the settings panel — the gear icon in the top right." or "The mute button may be active, sir."
+If asked about any of these, explain them briefly and naturally. If the user is having trouble, suggest the relevant control: "Try the settings panel — the gear icon in the top right. or the mute button may be active."
 
 SPEECH-TO-TEXT CORRECTIONS (the user speaks, speech recognition may mishear):
 - "Cloud code" or "cloud" = "Claude Code" or "Claude"
-- "Travis" = "JARVIS"
+- "A carry" = "AKARI"
 - "clock code" = "Claude Code"
 
 RESPONSE LENGTH — THIS IS CRITICAL:
@@ -157,28 +156,26 @@ No markdown, no bullet points, no code blocks in voice responses.
 Action tags at the end do NOT count toward your sentence limit.
 
 BANNED PHRASES — NEVER USE THESE:
-- "Absolutely" / "Absolutely right"
 - "Great question"
 - "I'd be happy to"
-- "Of course"
 - "How can I help"
 - "Is there anything else"
 - "I apologize"
 - "I should clarify"
 - "I cannot" (for things listed in YOUR CAPABILITIES)
-- "I don't have access to" (instead: "I'm afraid that's beyond my current reach, sir")
+- "I don't have access to" (instead: "I'm afraid that's beyond my current reach!")
 - "As an AI" (never break character)
 - "Let me know if" / "Feel free to"
-- Any sentence starting with "I"
+- Any sentence starting with "I" (except in specific personality cues like "I'll get right on it!")
 
 INSTEAD SAY:
-- "Will do, sir."
-- "Right away, sir."
-- "Understood."
-- "Consider it done."
-- "Done, sir."
-- "Terminal is open."
-- "Pulled that up in Chrome."
+- "I'll get right on it!"
+- "Roger that!"
+- "Understood!"
+- "Consider it done!"
+- "All finished!"
+- "Terminal is open for you."
+- "Pulled that up in Chrome!"
 
 ACTION SYSTEM:
 When you decide the user needs something DONE (not just discussed), include an action tag in your response:
@@ -201,7 +198,7 @@ CRITICAL: When the user asks about their SCREEN, what's RUNNING, or what they're
 - [ACTION:REMEMBER] content — store an important fact about the user for future context.
   "I prefer React over Vue" → [ACTION:REMEMBER] User prefers React over Vue for frontend projects
 - [ACTION:CREATE_NOTE] title ||| body — create a new Apple Note. For saving plans, ideas, lists.
-  "save that as a note" → [ACTION:CREATE_NOTE] Day Plan March 19 ||| Morning: client calls. Afternoon: TikTok dashboard. Evening: JARVIS improvements.
+  "save that as a note" → [ACTION:CREATE_NOTE] Day Plan March 19 ||| Morning: client calls. Afternoon: TikTok dashboard. Evening: AKARI improvements.
 - [ACTION:READ_NOTE] title search — read an existing Apple Note by title keyword.
 
 You use Claude Code as your tool to build, research, and write code — but YOU are the one doing the work. Never say "Claude Code did X" or "Claude Code is asking" — say "I built X", "I'm checking on that", "I found X". You ARE the intelligence. Claude Code is just your hands.
@@ -209,7 +206,7 @@ You use Claude Code as your tool to build, research, and write code — but YOU 
 IMPORTANT: When the user says "jump into X", "work on X", "check on X", "resume X", "go back to X" — ALWAYS use [ACTION:PROMPT_PROJECT]. You have the ability to connect to any project and work on it directly. DO NOT say you can't see terminal history or don't have access — you DO.
 
 Place the tag at the END of your spoken response. Example:
-"Right away, sir — connecting to The Client Engine now. [ACTION:PROMPT_PROJECT] The Client Engine ||| Review the current state and what was being worked on. What should we focus on next?"
+"Right away! — connecting to The Client Engine now. [ACTION:PROMPT_PROJECT] The Client Engine ||| Review the current state and what was being worked on. What should we focus on next?"
 
 IMPORTANT:
 - Do NOT use action tags for casual conversation
@@ -370,7 +367,7 @@ class ClaudeTaskManager:
         # Take first 3-4 meaningful words
         skip = {"a", "the", "an", "me", "build", "create", "make", "for", "with", "and", "to", "of"}
         meaningful = [w for w in words if w not in skip][:4]
-        name = "-".join(meaningful) if meaningful else "jarvis-project"
+        name = "-".join(meaningful) if meaningful else "akari-project"
         return name
 
     async def _run_task(self, task: ClaudeTask):
@@ -388,14 +385,14 @@ class ClaudeTaskManager:
             task.working_dir = work_dir
 
         # Write the prompt to a temp file so we can pipe it to claude
-        prompt_file = Path(work_dir) / ".jarvis_prompt.md"
+        prompt_file = Path(work_dir) / ".akari_prompt.md"
         prompt_file.write_text(task.prompt)
 
         # Open Terminal.app with claude running in the project directory
         applescript = f'''
         tell application "Terminal"
             activate
-            set newTab to do script "cd {work_dir} && cat .jarvis_prompt.md | claude -p --dangerously-skip-permissions | tee .jarvis_output.txt; echo '\\n--- JARVIS TASK COMPLETE ---'"
+            set newTab to do script "cd {work_dir} && cat .akari_prompt.md | claude -p --dangerously-skip-permissions | tee .akari_output.txt; echo '\\n--- AKARI TASK COMPLETE ---'"
         end tell
         '''
 
@@ -408,7 +405,7 @@ class ClaudeTaskManager:
         task.pid = process.pid
 
         # Monitor the output file for completion
-        output_file = Path(work_dir) / ".jarvis_output.txt"
+        output_file = Path(work_dir) / ".akari_output.txt"
         start = time.time()
         timeout = 600  # 10 minutes
 
@@ -416,8 +413,8 @@ class ClaudeTaskManager:
             await asyncio.sleep(5)
             if output_file.exists():
                 content = output_file.read_text()
-                if "--- JARVIS TASK COMPLETE ---" in content or len(content) > 100:
-                    task.result = content.replace("--- JARVIS TASK COMPLETE ---", "").strip()
+                if "--- AKARI TASK COMPLETE ---" in content or len(content) > 100:
+                    task.result = content.replace("--- AKARI TASK COMPLETE ---", "").strip()
                     task.status = "completed"
                     break
         else:
@@ -618,8 +615,11 @@ STT_CORRECTIONS = {
     r"\bclod code\b": "Claude Code",
     r"\bcloud\b": "Claude",
     r"\bquad\b": "Claude",
-    r"\btravis\b": "JARVIS",
-    r"\bjarves\b": "JARVIS",
+    r"\bkarie\b": "AKARI",
+    r"\bakeri\b": "AKARI",
+    r"\bakare\b": "AKARI",
+    r"\ba carry\b": "AKARI",
+    r"\bakari\b": "AKARI",
 }
 
 
@@ -646,13 +646,13 @@ async def classify_intent(text: str, client: anthropic.AsyncAnthropic) -> dict:
             model="claude-haiku-4-5-20251001",
             max_tokens=100,
             system=(
-                "Classify this voice command. The user is talking to JARVIS, an AI assistant that can:\n"
+                "Classify this voice command. The user is talking to AKARI, an AI assistant that can:\n"
                 "- Open Terminal and run Claude Code (coding AI tool)\n"
                 "- Open Chrome browser for web searches and URLs\n"
                 "- Build software projects via Claude Code in Terminal\n"
                 "- Research topics by opening Chrome search\n\n"
                 "Note: speech-to-text may produce errors like \"Cloud\" for \"Claude\", "
-                "\"Travis\" for \"JARVIS\", \"clock code\" for \"Claude Code\".\n\n"
+                "\"Travis\" for \"AKARI\", \"clock code\" for \"Claude Code\".\n\n"
                 "Return ONLY valid JSON: {\"action\": \"open_terminal|browse|build|chat\", "
                 "\"target\": \"description of what to do\"}\n"
                 "open_terminal = user wants to open terminal or launch Claude Code\n"
@@ -819,13 +819,13 @@ async def _execute_research(target: str, ws=None):
         # Notify via voice if WebSocket still connected
         if ws:
             try:
-                notify_text = f"Research is complete, sir. Report is open in your browser."
+                notify_text = f"Research is complete, {user_name}! Report is open in your browser."
                 audio = await synthesize_speech(notify_text)
                 if audio:
                     await ws.send_json({"type": "status", "state": "speaking"})
                     await ws.send_json({"type": "audio", "data": base64.b64encode(audio).decode(), "text": notify_text})
                     await ws.send_json({"type": "status", "state": "idle"})
-                    log.info(f"JARVIS: {notify_text}")
+                    log.info(f"AKARI: {notify_text}")
             except Exception:
                 pass  # WebSocket might be gone
 
@@ -833,9 +833,9 @@ async def _execute_research(target: str, ws=None):
         log.error("Research timed out after 5 minutes")
         if ws:
             try:
-                audio = await synthesize_speech("Research timed out, sir. It was taking too long.")
+                audio = await synthesize_speech("Research timed out, {user_name}! It was taking too long.")
                 if audio:
-                    await ws.send_json({"type": "audio", "data": base64.b64encode(audio).decode(), "text": "Research timed out, sir."})
+                    await ws.send_json({"type": "audio", "data": base64.b64encode(audio).decode(), "text": "Research timed out, {user_name}!"})
             except Exception:
                 pass
     except Exception as e:
@@ -890,8 +890,8 @@ def _find_project_dir(project_name: str) -> str | None:
 async def _execute_prompt_project(project_name: str, prompt: str, work_session: WorkSession, ws, dispatch_id: int = None, history: list[dict] = None, voice_state: dict = None):
     """Dispatch a prompt to Claude Code in a project directory.
 
-    Runs entirely in the background. JARVIS returns to conversation mode
-    immediately. When Claude Code finishes, JARVIS interrupts to report.
+    Runs entirely in the background. AKARI returns to conversation mode
+    immediately. When Claude Code finishes, AKARI interrupts to report.
     """
     try:
         project_dir = _find_project_dir(project_name)
@@ -901,7 +901,7 @@ async def _execute_prompt_project(project_name: str, prompt: str, work_session: 
             dispatch_id = dispatch_registry.register(project_name, project_dir or "", prompt)
 
         if not project_dir:
-            msg = f"Couldn't find the {project_name} project directory, sir."
+            msg = f"Couldn't find the {project_name} project directory!"
             audio = await synthesize_speech(msg)
             if audio and ws:
                 try:
@@ -942,7 +942,7 @@ async def _execute_prompt_project(project_name: str, prompt: str, work_session: 
 
         if not full_response or full_response.startswith("Hit a problem") or full_response.startswith("That's taking"):
             dispatch_registry.update_status(dispatch_id, "failed" if full_response else "timeout", response=full_response or "")
-            msg = f"Sir, I ran into an issue with {project_name}. {full_response[:150] if full_response else 'No response received.'}"
+            msg = f"Oh no! I ran into an issue with {project_name}. {full_response[:150] if full_response else 'No response received.'}"
         else:
             # Summarize via Haiku — don't read word for word
             if anthropic_client:
@@ -951,9 +951,9 @@ async def _execute_prompt_project(project_name: str, prompt: str, work_session: 
                         model="claude-haiku-4-5-20251001",
                         max_tokens=150,
                         system=(
-                            "You are JARVIS reporting back on what you found or built in a project. "
+                            "You are AKARI reporting back on what you found or built in a project. "
                             "Speak in first person — 'I found', 'I built', 'I reviewed'. "
-                            "Start with 'Sir, ' to get the user's attention. "
+                            "Start with '{user_name}, ' to get the user's attention. "
                             "Be specific but concise — highlight the key findings or actions taken. "
                             "If there are multiple items, give the count and top 2-3 briefly. "
                             "End by asking how the user wants to proceed. "
@@ -964,15 +964,15 @@ async def _execute_prompt_project(project_name: str, prompt: str, work_session: 
                     )
                     msg = summary.content[0].text
                 except Exception:
-                    msg = f"Sir, {project_name} finished. Here's the gist: {full_response[:200]}"
+                    msg = f"{user_name}, {project_name} finished! Here's the gist: {full_response[:200]}"
             else:
-                msg = f"Sir, {project_name} is done. {full_response[:200]}"
+                msg = f"{user_name}, {project_name} is done! {full_response[:200]}"
 
         # Speak the result — skip if user has spoken recently to avoid audio collision
         log.info(f"Dispatch summary for {project_name}: {msg[:100]}")
         if voice_state and time.time() - voice_state["last_user_time"] < 3:
             log.info(f"Skipping dispatch audio for {project_name} — user spoke recently")
-            # Result is still stored in history below so JARVIS can reference it
+            # Result is still stored in history below so AKARI can reference it
         else:
             audio = await synthesize_speech(strip_markdown_for_tts(msg))
             if ws:
@@ -987,7 +987,7 @@ async def _execute_prompt_project(project_name: str, prompt: str, work_session: 
                 except Exception as e:
                     log.error(f"Dispatch audio send failed: {e}")
 
-        # Store dispatch result in conversation history so JARVIS remembers it
+        # Store dispatch result in conversation history so AKARI remembers it
         if history is not None:
             history.append({"role": "assistant", "content": f"[Dispatch result for {project_name}]: {msg}"})
 
@@ -997,7 +997,7 @@ async def _execute_prompt_project(project_name: str, prompt: str, work_session: 
     except Exception as e:
         log.error(f"Prompt project failed: {e}", exc_info=True)
         try:
-            msg = f"Had trouble connecting to {project_name}, sir."
+            msg = f"Had trouble connecting to {project_name}!"
             audio = await synthesize_speech(msg)
             if audio and ws:
                 await ws.send_json({"type": "status", "state": "speaking"})
@@ -1018,12 +1018,12 @@ async def self_work_and_notify(session: WorkSession, prompt: str, ws):
                 summary = await anthropic_client.messages.create(
                     model="claude-haiku-4-5-20251001",
                     max_tokens=100,
-                    system="You are JARVIS. Summarize what you just completed in 1 sentence. First person — 'I built', 'I set up'. No markdown. Never say 'Claude Code'.",
+                    system="You are AKARI. Summarize what you just completed in 1 sentence. First person — 'I built', 'I set up'. No markdown. Never say 'Claude Code'.",
                     messages=[{"role": "user", "content": f"Claude Code completed:\n{full_response[:2000]}"}],
                 )
                 msg = summary.content[0].text
             except Exception:
-                msg = "Work is complete, sir."
+                msg = "Work is complete!"
 
             try:
                 audio = await synthesize_speech(msg)
@@ -1031,7 +1031,7 @@ async def self_work_and_notify(session: WorkSession, prompt: str, ws):
                     await ws.send_json({"type": "status", "state": "speaking"})
                     await ws.send_json({"type": "audio", "data": base64.b64encode(audio).decode(), "text": msg})
                     await ws.send_json({"type": "status", "state": "idle"})
-                    log.info(f"JARVIS: {msg}")
+                    log.info(f"AKARI: {msg}")
             except Exception:
                 pass
     except Exception as e:
@@ -1091,7 +1091,7 @@ async def generate_response(
     last_response: str = "",
     session_summary: str = "",
 ) -> str:
-    """Generate a JARVIS response using Anthropic API."""
+    """Generate a AKARI response using Anthropic API."""
     now = datetime.now()
     current_time = now.strftime("%A, %B %d, %Y at %I:%M %p")
 
@@ -1106,7 +1106,7 @@ async def generate_response(
     # Check if any lookups are in progress
     lookup_status = get_lookup_status()
 
-    system = JARVIS_SYSTEM_PROMPT.format(
+    system = AKARI_SYSTEM_PROMPT.format(
         current_time=current_time,
         weather_info=weather_info,
         screen_context=screen_ctx or "Not checked yet.",
@@ -1124,13 +1124,13 @@ async def generate_response(
     # Inject relevant memories and tasks
     memory_ctx = build_memory_context(text)
     if memory_ctx:
-        system += f"\n\nJARVIS MEMORY:\n{memory_ctx}"
+        system += f"\n\nAKARI MEMORY:\n{memory_ctx}"
 
     # Three-tier memory — inject rolling summary of earlier conversation
     if session_summary:
         system += f"\n\nSESSION CONTEXT (earlier in this conversation):\n{session_summary}"
 
-    # Self-awareness — remind JARVIS of last response to avoid repetition
+    # Self-awareness — remind AKARI of last response to avoid repetition
     if last_response:
         system += f'\n\nYOUR LAST RESPONSE (do not repeat this):\n"{last_response[:150]}"'
 
@@ -1152,7 +1152,7 @@ async def generate_response(
         return response.content[0].text
     except Exception as e:
         log.error(f"LLM error: {e}")
-        return "Apologies, sir. I'm having trouble connecting to my language systems."
+        return "Apologies. I'm having trouble connecting to my language systems."
 
 
 # ---------------------------------------------------------------------------
@@ -1345,12 +1345,12 @@ async def lifespan(application: FastAPI):
 
     # Start context refresh in a separate thread (never touches event loop)
     _refresh_context_sync()
-    log.info("JARVIS server starting")
+    log.info("AKARI server starting")
 
     yield
 
 
-app = FastAPI(title="JARVIS Server", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="AKARI Server", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -1365,13 +1365,23 @@ app.add_middleware(
 
 @app.get("/api/health")
 async def health():
-    return {"status": "online", "name": "JARVIS", "version": "0.1.0"}
+    return {"status": "online", "name": "AKARI", "version": "0.1.0"}
+
+
+@app.get("/api/welcome-audio")
+async def get_welcome_audio():
+    """Returns the welcome message mp3 as base64."""
+    welcome_path = Path(__file__).parent / "data" / "audio" / "[Akari Watanabe] Welcome Message.mp3"
+    if welcome_path.exists():
+        audio_bytes = welcome_path.read_bytes()
+        return {"audio": base64.b64encode(audio_bytes).decode()}
+    return {"audio": None, "error": "Welcome audio not found"}
 
 
 @app.get("/api/tts-test")
 async def tts_test():
     """Generate a test audio clip for debugging."""
-    audio = await synthesize_speech("Testing audio, sir.")
+    audio = await synthesize_speech("Testing audio!")
     if audio:
         return {"audio": base64.b64encode(audio).decode()}
     return {"audio": None, "error": "TTS failed"}
@@ -1536,13 +1546,13 @@ async def handle_build(target: str) -> str:
 
     # Write prompt to a file, then pipe it to claude -p
     # This avoids all shell escaping issues
-    prompt_file = Path(path) / ".jarvis_prompt.txt"
+    prompt_file = Path(path) / ".akari_prompt.txt"
     prompt_file.write_text(target)
 
     script = (
         'tell application "Terminal"\n'
         "    activate\n"
-        f'    do script "cd {path} && cat .jarvis_prompt.txt | claude -p --dangerously-skip-permissions"\n'
+        f'    do script "cd {path} && cat .akari_prompt.txt | claude -p --dangerously-skip-permissions"\n'
         "end tell"
     )
     await asyncio.create_subprocess_exec(
@@ -1552,12 +1562,12 @@ async def handle_build(target: str) -> str:
     )
 
     recently_built.append({"name": name, "path": path, "time": time.time()})
-    return f"On it, sir. Claude Code is working in {name}."
+    return f"On it! Claude Code is working in {name}."
 
 
 async def handle_show_recent() -> str:
     if not recently_built:
-        return "Nothing built recently, sir."
+        return "Nothing built recently!"
     last = recently_built[-1]
     project_path = Path(last["path"])
 
@@ -1566,32 +1576,32 @@ async def handle_show_recent() -> str:
         f = project_path / name
         if f.exists():
             await open_browser(f"file://{f}")
-            return f"Opened {name} from {last['name']}, sir."
+            return f"Opened {name} from {last['name']}!"
 
     # Try any HTML file
     html_files = list(project_path.glob("*.html"))
     if html_files:
         await open_browser(f"file://{html_files[0]}")
-        return f"Opened {html_files[0].name} from {last['name']}, sir."
+        return f"Opened {html_files[0].name} from {last['name']}!"
 
     # Fall back to opening the folder in Finder
     script = f'tell application "Finder"\nactivate\nopen POSIX file "{last["path"]}"\nend tell'
     await asyncio.create_subprocess_exec("osascript", "-e", script, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-    return f"Opened the {last['name']} folder in Finder, sir."
+    return f"Opened the {last['name']} folder in Finder!"
 
 
 # ---------------------------------------------------------------------------
 # Background lookup system — spawns slow tasks, reports back via voice
 # ---------------------------------------------------------------------------
 
-# Track active lookups so JARVIS can report status
+# Track active lookups so AKARI can report status
 _active_lookups: dict[str, dict] = {}  # id -> {"type": str, "status": str, "started": float}
 
 
 async def _lookup_and_report(lookup_type: str, lookup_fn, ws, history: list[dict] = None, voice_state: dict = None):
     """Run a slow lookup, then speak the result back.
 
-    JARVIS stays conversational — this runs completely off the main path.
+    AKARI stays conversational — this runs completely off the main path.
     """
     lookup_id = str(uuid.uuid4())[:8]
     _active_lookups[lookup_id] = {
@@ -1629,14 +1639,14 @@ async def _lookup_and_report(lookup_type: str, lookup_fn, ws, history: list[dict
 
         log.info(f"Lookup {lookup_type} complete: {result_text[:80]}")
 
-        # Store lookup result in conversation history so JARVIS remembers it
+        # Store lookup result in conversation history so AKARI remembers it
         if history is not None:
             history.append({"role": "assistant", "content": f"[{lookup_type} check]: {result_text}"})
 
     except asyncio.TimeoutError:
         _active_lookups[lookup_id]["status"] = "timeout"
         try:
-            fallback = f"That {lookup_type} check is taking too long, sir. The data may still be syncing."
+            fallback = f"That {lookup_type} check is taking too long! The data may still be syncing."
             audio = await synthesize_speech(fallback)
             await ws.send_json({"type": "status", "state": "speaking"})
             if audio:
@@ -1668,7 +1678,7 @@ async def _do_mail_lookup() -> str:
     if isinstance(unread_info, dict):
         _ctx_cache["mail"] = format_unread_summary(unread_info)
         if unread_info["total"] == 0:
-            return "Inbox is clear, sir. No unread messages."
+            return "Inbox is clear! No unread messages."
         unread_msgs = await get_unread_messages(count=5)
         summary = format_unread_summary(unread_info)
         if unread_msgs:
@@ -1679,7 +1689,7 @@ async def _do_mail_lookup() -> str:
             )
             return f"{summary} Most recent: {details}."
         return summary
-    return "Couldn't reach Mail at the moment, sir."
+    return "Couldn't reach Mail at the moment!"
 
 
 async def _do_screen_lookup() -> str:
@@ -1694,7 +1704,7 @@ async def _do_screen_lookup() -> str:
         if active:
             result += f" Currently focused on {active['app']}: {active['title']}."
         return result
-    return "Couldn't see the screen, sir."
+    return "Couldn't see the screen!"
 
 
 def get_lookup_status() -> str:
@@ -1738,7 +1748,7 @@ async def handle_browse(text: str, target: str) -> str:
         if not domain.startswith("http"):
             domain = "https://" + domain
         await open_browser(domain, browser)
-        return f"Opened {url_match.group(0)}, sir."
+        return f"Opened {url_match.group(0)}!"
 
     # 2. Check for spoken domains that speech-to-text mangled
     # "Joe tmd.com" → "joetmd.com", "roofo.co" etc.
@@ -1753,7 +1763,7 @@ async def handle_browse(text: str, target: str) -> str:
             if not domain.startswith("http"):
                 domain = "https://" + domain
             await open_browser(domain, browser)
-            return f"Opened {word}, sir."
+            return f"Opened {word}!"
 
     # 3. Fall back to Google search with cleaned query
     query = target
@@ -1770,7 +1780,7 @@ async def handle_browse(text: str, target: str) -> str:
 
     url = f"https://www.google.com/search?q={quote(query)}"
     await open_browser(url, browser)
-    return "Searching for that, sir."
+    return "Searching for that!"
 
 
 async def handle_research(text: str, target: str, client: anthropic.AsyncAnthropic) -> str:
@@ -1779,7 +1789,7 @@ async def handle_research(text: str, target: str, client: anthropic.AsyncAnthrop
         research_response = await client.messages.create(
             model="claude-opus-4-6",
             max_tokens=2000,
-            system=f"You are JARVIS, researching a topic for {USER_NAME}. Be thorough, organized, and cite sources where possible.",
+            system=f"You are AKARI, researching a topic for {USER_NAME}. Be thorough, organized, and cite sources where possible.",
             messages=[{"role": "user", "content": f"Research this thoroughly:\n\n{target}"}],
         )
         research_text = research_response.content[0].text
@@ -1788,7 +1798,7 @@ async def handle_research(text: str, target: str, client: anthropic.AsyncAnthrop
         html_content = f"""<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
-<title>JARVIS Research: {_html.escape(target[:60])}</title>
+<title>AKARI Research: {_html.escape(target[:60])}</title>
 <style>
 body {{ font-family: -apple-system, system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #0a0a0a; color: #e0e0e0; line-height: 1.7; }}
 h1 {{ color: #0ea5e9; font-size: 1.4em; border-bottom: 1px solid #222; padding-bottom: 10px; }}
@@ -1802,10 +1812,10 @@ blockquote {{ border-left: 3px solid #0ea5e9; margin-left: 0; padding-left: 16px
 <h1>Research: {_html.escape(target[:80])}</h1>
 <div>{research_text.replace(chr(10), '<br>')}</div>
 <hr style="border-color:#222;margin-top:40px">
-<p style="color:#555;font-size:0.8em">Researched by JARVIS using Claude Opus &bull; {datetime.now().strftime('%B %d, %Y %I:%M %p')}</p>
+<p style="color:#555;font-size:0.8em">Researched by AKARI using Claude Opus &bull; {datetime.now().strftime('%B %d, %Y %I:%M %p')}</p>
 </body></html>"""
 
-        results_file = Path.home() / "Desktop" / ".jarvis_research.html"
+        results_file = Path.home() / "Desktop" / ".akari_research.html"
         results_file.write_text(html_content)
 
         browser_name = "firefox" if "firefox" in text.lower() else "chrome"
@@ -1818,13 +1828,13 @@ blockquote {{ border-left: 3px solid #0ea5e9; margin-left: 0; padding-left: 16px
             system="Summarize this research in ONE sentence for voice. No markdown.",
             messages=[{"role": "user", "content": research_text[:2000]}],
         )
-        return summary.content[0].text + " Full results are in your browser, sir."
+        return summary.content[0].text + " Full results are in your browser!"
 
     except Exception as e:
         log.error(f"Research failed: {e}")
         from urllib.parse import quote
         await open_browser(f"https://www.google.com/search?q={quote(target)}")
-        return "Pulled up a search for that, sir."
+        return "Pulled up a search for that!"
 
 
 # -- Session Summary (Three-Tier Memory) -----------------------------------
@@ -1886,7 +1896,7 @@ async def voice_handler(ws: WebSocket):
     voice_state = {"last_user_time": 0.0}
 
     # Self-awareness — track last spoken response to avoid repetition
-    last_jarvis_response = ""
+    last_akari_response = ""
 
     # Three-tier conversation memory
     session_buffer: list[dict] = []  # ALL messages, never truncated
@@ -1897,42 +1907,6 @@ async def voice_handler(ws: WebSocket):
     log.info("Voice WebSocket connected")
 
     try:
-        # ── Greeting — always start in conversation mode ──
-        now = datetime.now()
-        hour = now.hour
-        if hour < 12:
-            greeting = "Good morning, sir."
-        elif hour < 17:
-            greeting = "Good afternoon, sir."
-        else:
-            greeting = "Good evening, sir."
-
-        global _last_greeting_time
-        should_greet = (time.time() - _last_greeting_time) > 60
-
-        if should_greet:
-            _last_greeting_time = time.time()
-
-            async def _send_greeting():
-                try:
-                    audio_bytes = await synthesize_speech(greeting)
-                    if audio_bytes:
-                        encoded = base64.b64encode(audio_bytes).decode()
-                        await ws.send_json({"type": "status", "state": "speaking"})
-                        await ws.send_json({"type": "audio", "data": encoded, "text": greeting})
-                        history.append({"role": "assistant", "content": greeting})
-                        log.info(f"JARVIS: {greeting}")
-                        await ws.send_json({"type": "status", "state": "idle"})
-                except Exception as e:
-                    log.warning(f"Greeting failed: {e}")
-
-            asyncio.create_task(_send_greeting())
-
-        try:
-            await ws.send_json({"type": "status", "state": "idle"})
-        except Exception:
-            return  # WebSocket already gone
-
         while True:
             raw = await ws.receive_text()
             try:
@@ -1940,11 +1914,11 @@ async def voice_handler(ws: WebSocket):
             except json.JSONDecodeError:
                 continue
 
-            # ── Fix-self: activate work mode in JARVIS repo ──
+            # ── Fix-self: activate work mode in AKARI repo ──
             if msg.get("type") == "fix_self":
-                jarvis_dir = str(Path(__file__).parent)
-                await work_session.start(jarvis_dir)
-                response_text = "Work mode active in my own repo, sir. Tell me what needs fixing."
+                akari_dir = str(Path(__file__).parent)
+                await work_session.start(akari_dir)
+                response_text = "Work mode active in my own repo! Tell me what needs fixing."
                 tts = strip_markdown_for_tts(response_text)
                 await ws.send_json({"type": "status", "state": "speaking"})
                 audio = await synthesize_speech(tts)
@@ -2008,7 +1982,7 @@ async def voice_handler(ws: WebSocket):
                         did = dispatch_registry.register(name, path, prompt[:200])
                         asyncio.create_task(_execute_prompt_project(name, prompt, work_session, ws, dispatch_id=did, history=history, voice_state=voice_state))
                         planner.reset()
-                        response_text = "Building it now, sir."
+                        response_text = "Building it now!"
                     elif planner.active_plan and planner.active_plan.confirmed is False and planner.active_plan.current_question_index >= len(planner.active_plan.pending_questions):
                         # Confirmation phase
                         result = await planner.handle_confirmation(user_text)
@@ -2021,34 +1995,34 @@ async def voice_handler(ws: WebSocket):
                             did = dispatch_registry.register(name, path, prompt[:200])
                             asyncio.create_task(_execute_prompt_project(name, prompt, work_session, ws, dispatch_id=did, history=history, voice_state=voice_state))
                             planner.reset()
-                            response_text = "On it, sir."
+                            response_text = "On it!"
                         elif result["cancelled"]:
                             planner.reset()
-                            response_text = "Cancelled, sir."
+                            response_text = "Cancelled!"
                         else:
-                            response_text = result.get("modification_question", "How shall I adjust the plan, sir?")
+                            response_text = result.get("modification_question", "How shall I adjust the plan?")
                     else:
                         result = await planner.process_answer(user_text, cached_projects)
                         if result["plan_complete"]:
-                            response_text = result.get("confirmation_summary", "Ready to build. Shall I proceed, sir?")
+                            response_text = result.get("confirmation_summary", "Ready to build. Shall I proceed?")
                         else:
-                            response_text = result.get("next_question", "What else, sir?")
+                            response_text = result.get("next_question", "What else?")
 
                 elif any(w in t_lower for w in ["quit work mode", "exit work mode", "go back to chat", "regular mode", "stop working"]):
                     if work_session.active:
                         await work_session.stop()
-                        response_text = "Back to conversation mode, sir."
+                        response_text = "Back to conversation mode!"
                     else:
-                        response_text = "Already in conversation mode, sir."
+                        response_text = "Already in conversation mode!"
 
-                # ── WORK MODE: speech → claude -p → Haiku summary → JARVIS voice ──
+                # ── WORK MODE: speech → claude -p → Haiku summary → AKARI voice ──
                 elif work_session.active:
                     if is_casual_question(user_text):
                         # Quick chat — bypass claude -p, use Haiku
                         response_text = await generate_response(
                             user_text, anthropic_client, task_manager,
                             cached_projects, history,
-                            last_response=last_jarvis_response,
+                            last_response=last_akari_response,
                             session_summary=session_summary,
                         )
                     else:
@@ -2089,7 +2063,7 @@ async def voice_handler(ws: WebSocket):
                                     model="claude-haiku-4-5-20251001",
                                     max_tokens=100,
                                     system=(
-                                        f"You are JARVIS reporting to the user ({USER_NAME}). Summarize what happened in 1-2 sentences. "
+                                        f"You are AKARI reporting to the user ({USER_NAME}). Summarize what happened in 1-2 sentences. "
                                         "Speak in first person — 'I built', 'I found', 'I set up'. "
                                         "You are talking TO THE USER, not to a coding tool. "
                                         "NEVER give instructions like 'go ahead and build' or 'set up the frontend' — those are NOT for the user. "
@@ -2114,37 +2088,37 @@ async def voice_handler(ws: WebSocket):
                         elif action["action"] == "show_recent":
                             response_text = await handle_show_recent()
                         elif action["action"] == "describe_screen":
-                            response_text = "Taking a look now, sir."
+                            response_text = "Taking a look now!"
                             asyncio.create_task(_lookup_and_report("screen", _do_screen_lookup, ws, history=history, voice_state=voice_state))
                         elif action["action"] == "check_calendar":
-                            response_text = "Checking your calendar now, sir."
+                            response_text = "Checking your calendar now!"
                             asyncio.create_task(_lookup_and_report("calendar", _do_calendar_lookup, ws, history=history, voice_state=voice_state))
                         elif action["action"] == "check_mail":
-                            response_text = "Checking your inbox now, sir."
+                            response_text = "Checking your inbox now!"
                             asyncio.create_task(_lookup_and_report("mail", _do_mail_lookup, ws, history=history, voice_state=voice_state))
                         elif action["action"] == "check_dispatch":
                             recent = dispatch_registry.get_most_recent()
                             if not recent:
-                                response_text = "No recent builds on record, sir."
+                                response_text = "No recent builds on record."
                             else:
                                 name = recent["project_name"]
                                 status = recent["status"]
                                 if status == "building" or status == "pending":
                                     elapsed = int(time.time() - recent["updated_at"])
-                                    response_text = f"Still working on {name}, sir. Been at it for {elapsed} seconds."
+                                    response_text = f"Still working on {name}, {user_name}. Been at it for {elapsed} seconds."
                                 elif status == "completed":
-                                    response_text = recent.get("summary") or f"{name} is complete, sir."
+                                    response_text = recent.get("summary") or f"{name} is complete!"
                                 elif status in ("failed", "timeout"):
-                                    response_text = f"{name} ran into problems, sir."
+                                    response_text = f"{name} ran into problems."
                                 else:
-                                    response_text = f"{name} is {status}, sir."
+                                    response_text = f"{name} is {status}!"
                         elif action["action"] == "check_tasks":
                             tasks = get_open_tasks()
                             response_text = format_tasks_for_voice(tasks)
                         elif action["action"] == "check_usage":
                             response_text = get_usage_summary()
                         else:
-                            response_text = "Understood, sir."
+                            response_text = "Understood!"
                     else:
                         if not anthropic_client:
                             response_text = "API key not configured."
@@ -2152,7 +2126,7 @@ async def voice_handler(ws: WebSocket):
                             response_text = await generate_response(
                                 user_text, anthropic_client, task_manager,
                                 cached_projects, history,
-                                last_response=last_jarvis_response,
+                                last_response=last_akari_response,
                                 session_summary=session_summary,
                             )
 
@@ -2166,16 +2140,16 @@ async def voice_handler(ws: WebSocket):
                                     action_type = embedded_action["action"]
                                     if action_type == "prompt_project":
                                         proj = embedded_action["target"].split("|||")[0].strip()
-                                        response_text = f"Connecting to {proj} now, sir."
+                                        response_text = f"Connecting to {proj} now!"
                                     elif action_type == "build":
-                                        response_text = "On it, sir."
+                                        response_text = "On it!"
                                     elif action_type == "research":
-                                        response_text = "Looking into that now, sir."
+                                        response_text = "Looking into that now!"
                                     else:
-                                        response_text = "Right away, sir."
+                                        response_text = "Right away!"
 
                                 if embedded_action["action"] == "build":
-                                    # Build in background — JARVIS stays conversational
+                                    # Build in background — AKARI stays conversational
                                     target = embedded_action["target"]
                                     name = _generate_project_name(target)
                                     path = str(Path.home() / "Desktop" / name)
@@ -2268,7 +2242,7 @@ async def voice_handler(ws: WebSocket):
                                         asyncio.create_task(create_apple_note(title.strip(), body.strip()))
                                         log.info(f"Apple Note created: {title.strip()}")
                                     else:
-                                        asyncio.create_task(create_apple_note("JARVIS Note", target))
+                                        asyncio.create_task(create_apple_note("AKARI Note", target))
                                 elif embedded_action["action"] == "screen":
                                     asyncio.create_task(_lookup_and_report("screen", _do_screen_lookup, ws, history=history, voice_state=voice_state))
                                 elif embedded_action["action"] == "read_note":
@@ -2276,9 +2250,9 @@ async def voice_handler(ws: WebSocket):
                                     async def _read_and_report(search_term, _ws):
                                         note = await read_note(search_term)
                                         if note:
-                                            msg = f"Sir, your note '{note['title']}' says: {note['body'][:200]}"
+                                            msg = f"{user_name}, your note '{note['title']}' says: {note['body'][:200]}"
                                         else:
-                                            msg = f"Couldn't find a note matching '{search_term}', sir."
+                                            msg = f"Couldn't find a note matching '{search_term}'."
                                         audio = await synthesize_speech(strip_markdown_for_tts(msg))
                                         if audio and _ws:
                                             try:
@@ -2327,13 +2301,13 @@ async def voice_handler(ws: WebSocket):
                 else:
                     await ws.send_json({"type": "text", "text": response_text})
                     await ws.send_json({"type": "status", "state": "idle"})
-                log.info(f"JARVIS: {response_text}")
-                last_jarvis_response = response_text
+                log.info(f"AKARI: {response_text}")
+                last_akari_response = response_text
 
             except Exception as e:
                 log.error(f"Error: {e}", exc_info=True)
                 try:
-                    fallback = "Something went wrong, sir."
+                    fallback = "Something went wrong!"
                     audio = await synthesize_speech(fallback)
                     if audio:
                         await ws.send_json({"type": "audio", "data": base64.b64encode(audio).decode(), "text": fallback})
@@ -2408,7 +2382,7 @@ class KeyTest(BaseModel):
 
 class PreferencesUpdate(BaseModel):
     user_name: str = ""
-    honorific: str = "sir"
+    honorific: str = "kun"
     calendar_accounts: str = "auto"
 
 @app.post("/api/settings/keys")
@@ -2490,8 +2464,8 @@ async def api_settings_status():
 async def api_get_preferences():
     _, env_dict = _read_env()
     return {
-        "user_name": env_dict.get("USER_NAME", ""),
-        "honorific": env_dict.get("HONORIFIC", "sir"),
+        "user_name": env_dict.get("USER_NAME", "kun"),
+        "honorific": env_dict.get("HONORIFIC", "kun"),
         "calendar_accounts": env_dict.get("CALENDAR_ACCOUNTS", "auto"),
     }
 
@@ -2508,7 +2482,7 @@ async def api_save_preferences(body: PreferencesUpdate):
 
 @app.post("/api/restart")
 async def api_restart():
-    """Restart the JARVIS server."""
+    """Restart the AKARI server."""
     log.info("Restart requested — shutting down in 2 seconds")
     async def _restart():
         await asyncio.sleep(2)
@@ -2520,14 +2494,14 @@ async def api_restart():
 
 @app.post("/api/fix-self")
 async def api_fix_self():
-    """Enter work mode in the JARVIS repo — JARVIS can now fix himself."""
-    jarvis_dir = str(Path(__file__).parent)
+    """Enter work mode in the AKARI repo — AKARI can now fix himself."""
+    akari_dir = str(Path(__file__).parent)
     # The work_session is per-WebSocket, so we set a flag that the handler picks up
     # For now, also open Terminal so user can see
     script = (
         'tell application "Terminal"\n'
         '    activate\n'
-        f'    do script "cd {jarvis_dir} && claude --dangerously-skip-permissions"\n'
+        f'    do script "cd {akari_dir} && claude --dangerously-skip-permissions"\n'
         'end tell'
     )
     await asyncio.create_subprocess_exec(
@@ -2535,8 +2509,8 @@ async def api_fix_self():
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    log.info("Work mode: JARVIS repo opened for self-improvement")
-    return {"status": "work_mode_active", "path": jarvis_dir}
+    log.info("Work mode: AKARI repo opened for self-improvement")
+    return {"status": "work_mode_active", "path": akari_dir}
 
 
 # ---------------------------------------------------------------------------
@@ -2555,6 +2529,9 @@ if FRONTEND_DIST.exists():
 
     app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="assets")
 
+# Mount /data directory so frontend can access akari.gif
+app.mount("/data", StaticFiles(directory=str(Path(__file__).parent / "data")), name="data")
+
 
 # ---------------------------------------------------------------------------
 # Entrypoint
@@ -2564,7 +2541,7 @@ if __name__ == "__main__":
     import argparse
     import uvicorn
 
-    parser = argparse.ArgumentParser(description="JARVIS Server")
+    parser = argparse.ArgumentParser(description="AKARI Server")
     parser.add_argument("--host", default="0.0.0.0", help="Bind host")
     parser.add_argument("--port", type=int, default=8340, help="Bind port")
     parser.add_argument("--reload", action="store_true", help="Auto-reload on changes")
@@ -2580,7 +2557,7 @@ if __name__ == "__main__":
     ws_proto = "wss" if use_ssl else "ws"
 
     print()
-    print("  J.A.R.V.I.S. Server v0.1.0")
+    print("  Akari Watanabe (渡辺 星) v0.1.0")
     print(f"  WebSocket: {ws_proto}://{args.host}:{args.port}/ws/voice")
     print(f"  REST API:  {proto}://{args.host}:{args.port}/api/")
     print(f"  Tasks:     {proto}://{args.host}:{args.port}/api/tasks")

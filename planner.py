@@ -1,5 +1,5 @@
 """
-JARVIS Task Planner — Conversational planning before spawning Claude Code.
+AKARI Task Planner — Conversational planning before spawning Claude Code.
 
 Handles:
 1. Planning mode detection (distinguish "build me X" from "what time is it")
@@ -19,7 +19,7 @@ import anthropic
 
 from templates import TEMPLATES, get_template
 
-log = logging.getLogger("jarvis.planner")
+log = logging.getLogger("akari.planner")
 
 DESKTOP_PATH = Path.home() / "Desktop"
 
@@ -249,31 +249,31 @@ def _classify_planning_mode_heuristic(text: str) -> PlanningDecision:
 
 QUESTION_MAP = {
     "build": [
-        {"key": "project", "q": "Which project, sir?", "default": None},
+        {"key": "project", "q": "Which project are we working on, {user_name}?", "default": None},
         {"key": "tech_stack", "q": "React or vanilla?", "default": "React + Tailwind"},
         {"key": "details", "q": "Any specific sections or features?", "default": None},
     ],
     "fix": [
-        {"key": "project", "q": "Which project, sir?", "default": None},
+        {"key": "project", "q": "Which project are we working on, {user_name}?", "default": None},
         {"key": "error", "q": "What error are you seeing?", "default": None},
         {"key": "expected", "q": "What should it do instead?", "default": None},
     ],
     "research": [
-        {"key": "depth", "q": "Quick overview or deep dive, sir?", "default": "quick overview"},
+        {"key": "depth", "q": "Should I do a quick overview or a deep dive, {user_name}?", "default": "quick overview"},
         {"key": "sources", "q": "Any specific sources to check?", "default": None},
         {"key": "output_format", "q": "Want a summary or a full report?", "default": "summary"},
     ],
     "refactor": [
-        {"key": "project", "q": "Which project, sir?", "default": None},
+        {"key": "project", "q": "Which project are we working on, {user_name}?", "default": None},
         {"key": "target", "q": "Which file or module?", "default": None},
         {"key": "goal", "q": "What's the goal — performance, readability, or structure?", "default": "readability"},
     ],
     "run": [
-        {"key": "project", "q": "Which project, sir?", "default": None},
+        {"key": "project", "q": "Which project are we working on, {user_name}?", "default": None},
         {"key": "command", "q": "Any specific command?", "default": None},
     ],
     "feature": [
-        {"key": "project", "q": "Which project, sir?", "default": None},
+        {"key": "project", "q": "Which project are we working on, {user_name}?", "default": None},
         {"key": "details", "q": "Can you describe the feature briefly?", "default": None},
         {"key": "tech_stack", "q": "Any tech preferences?", "default": None},
     ],
@@ -611,7 +611,7 @@ class TaskPlanner:
         if plan.answers.get("tech_stack"):
             parts.append(f"using {plan.answers['tech_stack']}")
 
-        summary = " ".join(parts) + ". Shall I proceed, sir?"
+        summary = " ".join(parts) + ". Should I get started, {user_name}!"
         return summary
 
     async def build_prompt(self) -> str:

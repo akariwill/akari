@@ -1,5 +1,5 @@
 """
-JARVIS Usage Learning — Tracks request patterns and pre-loads context.
+AKARI Usage Learning — Tracks request patterns and pre-loads context.
 
 Identifies what tasks the user requests most, which projects are active,
 and suggests relevant context based on patterns.
@@ -12,9 +12,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
-log = logging.getLogger("jarvis.learning")
+log = logging.getLogger("akari.learning")
 
-DB_PATH = Path(__file__).parent / "jarvis_data.db"
+DB_PATH = Path(__file__).parent / "akari_data.db"
 
 
 @dataclass
@@ -110,7 +110,7 @@ class UsageLearner:
             # Direct name mention
             if project_name in user_lower:
                 return ContextSuggestion(
-                    suggestion_text=f"I'll use the {project['name']} project directory, sir.",
+                    suggestion_text=f"I'll use the {project['name']} project directory!",
                     project_dir=project_path,
                     confidence=0.95,
                 )
@@ -133,7 +133,7 @@ class UsageLearner:
             return ContextSuggestion(
                 suggestion_text=(
                     f"Based on your recent work, shall I use the {best_match['name']} "
-                    f"project directory, sir?"
+                    f"project directory?"
                 ),
                 project_dir=best_match.get("path", ""),
                 confidence=best_confidence,
@@ -156,7 +156,7 @@ class UsageLearner:
                 if any(kw in user_lower for kw in [top_type, action_word]):
                     return ContextSuggestion(
                         suggestion_text=(
-                            f"You've been doing quite a bit of {action_word} lately, sir. "
+                            f"You've been doing quite a bit of {action_word} lately! "
                             f"Shall I apply the same approach here?"
                         ),
                         project_dir="",

@@ -1,13 +1,13 @@
 """
-JARVIS Memory & Planning — persistent context, tasks, notes, and smart routing.
+AKARI Memory & Planning — persistent context, tasks, notes, and smart routing.
 
 Three systems:
-1. Memory — facts, preferences, project context JARVIS learns from conversations
+1. Memory — facts, preferences, project context AKARI learns from conversations
 2. Tasks — to-do items with priority, due dates, project association
 3. Notes — freeform context tied to projects, people, or topics
 
 Everything stored in SQLite. Relevant memories injected into every LLM call
-so JARVIS gets smarter over time.
+so AKARI gets smarter over time.
 """
 
 import json
@@ -17,9 +17,9 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
-log = logging.getLogger("jarvis.memory")
+log = logging.getLogger("akari.memory")
 
-DB_PATH = Path(__file__).parent / "data" / "jarvis.db"
+DB_PATH = Path(__file__).parent / "data" / "akari.db"
 
 
 def _get_db() -> sqlite3.Connection:
@@ -90,7 +90,7 @@ def init_db():
 
 
 # ---------------------------------------------------------------------------
-# Memories — facts JARVIS learns
+# Memories — facts AKARI learns
 # ---------------------------------------------------------------------------
 
 def remember(content: str, mem_type: str = "fact", source: str = "", importance: int = 5) -> int:
@@ -353,7 +353,7 @@ def build_memory_context(user_message: str) -> str:
 def format_tasks_for_voice(tasks: list[dict]) -> str:
     """Format tasks for voice response."""
     if not tasks:
-        return "No tasks on the list, sir."
+        return "No tasks on the list!"
     count = len(tasks)
     high = [t for t in tasks if t["priority"] == "high"]
     if count == 1:
@@ -373,7 +373,7 @@ def format_tasks_for_voice(tasks: list[dict]) -> str:
 def format_plan_for_voice(tasks: list[dict], events: list[dict]) -> str:
     """Format a day plan combining tasks and calendar events."""
     if not tasks and not events:
-        return "Your day looks clear, sir. No events or tasks scheduled."
+        return "Your day looks clear! No events or tasks scheduled."
 
     parts = []
     if events:
@@ -402,7 +402,7 @@ def format_plan_for_voice(tasks: list[dict], events: list[dict]) -> str:
 # Memory extraction — learn from conversations
 # ---------------------------------------------------------------------------
 
-async def extract_memories(user_text: str, jarvis_response: str, anthropic_client) -> list[str]:
+async def extract_memories(user_text: str, akari_response: str, anthropic_client) -> list[str]:
     """After a conversation turn, extract any facts worth remembering.
 
     Uses Haiku to decide if anything in the exchange is worth storing.
@@ -422,7 +422,7 @@ async def extract_memories(user_text: str, jarvis_response: str, anthropic_clien
                 "Return JSON array of objects: [{\"type\": \"fact|preference|project|person|decision\", \"content\": \"...\", \"importance\": 1-10}] "
                 "Return [] if nothing worth remembering. Be very selective."
             ),
-            messages=[{"role": "user", "content": f"User: {user_text}\nJARVIS: {jarvis_response}"}],
+            messages=[{"role": "user", "content": f"User: {user_text}\nAKARI: {akari_response}"}],
         )
 
         text = response.content[0].text.strip()

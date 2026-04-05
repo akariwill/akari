@@ -1,5 +1,5 @@
 """
-JARVIS Screen Awareness — see what's on the user's screen.
+AKARI Screen Awareness — see what's on the user's screen.
 
 Two capabilities:
 1. Window/app list via AppleScript (fast, text-based)
@@ -13,7 +13,7 @@ import logging
 import tempfile
 from pathlib import Path
 
-log = logging.getLogger("jarvis.screen")
+log = logging.getLogger("akari.screen")
 
 
 async def get_active_windows() -> list[dict]:
@@ -164,7 +164,7 @@ async def describe_screen(anthropic_client) -> str:
                 model="claude-haiku-4-5-20251001",
                 max_tokens=300,
                 system=(
-                    "You are JARVIS analyzing a screenshot of the user's desktop. "
+                    "You are AKARI analyzing a screenshot of the user's desktop. "
                     "Describe what you see concisely: which apps are open, what the user "
                     "appears to be working on, any notable content visible. "
                     "Be specific about app names, file names, URLs, code, or documents visible. "
@@ -197,7 +197,7 @@ async def describe_screen(anthropic_client) -> str:
     apps = await get_running_apps()
 
     if not windows and not apps:
-        return "I wasn't able to see your screen, sir. Screen recording permission may be needed."
+        return "I wasn't able to see your screen! Screen recording permission may be needed."
 
     # Build a text description for LLM to summarize
     context_parts = []
@@ -218,7 +218,7 @@ async def describe_screen(anthropic_client) -> str:
                 model="claude-haiku-4-5-20251001",
                 max_tokens=100,
                 system=(
-                    "You are JARVIS. Given the user's open windows and apps, summarize "
+                    "You are AKARI. Given the user's open windows and apps, summarize "
                     "what they appear to be working on in 1-2 sentences. Natural voice, no markdown."
                 ),
                 messages=[{"role": "user", "content": "Open windows:\n" + "\n".join(context_parts)}],
@@ -235,7 +235,7 @@ async def describe_screen(anthropic_client) -> str:
             result += f" Currently focused on {active['app']}: {active['title']}."
         return result
 
-    return f"Running apps: {', '.join(apps)}. Couldn't read window titles, sir."
+    return f"Running apps: {', '.join(apps)}. Couldn't read window titles!"
 
 
 def format_windows_for_context(windows: list[dict]) -> str:

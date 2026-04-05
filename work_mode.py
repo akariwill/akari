@@ -1,12 +1,12 @@
 """
-JARVIS Work Mode — persistent claude -p sessions tied to projects.
+AKARI Work Mode — persistent claude -p sessions tied to projects.
 
-JARVIS can connect to any project directory and maintain a conversation
+AKARI can connect to any project directory and maintain a conversation
 with Claude Code. Uses --continue to resume the most recent session
 in that directory, so context persists across messages.
 
 The user sees Claude Code working in their Terminal window.
-JARVIS reads the responses via subprocess, summarizes, and reports back.
+AKARI reads the responses via subprocess, summarizes, and reports back.
 """
 
 import asyncio
@@ -15,7 +15,7 @@ import logging
 import shutil
 from pathlib import Path
 
-log = logging.getLogger("jarvis.work_mode")
+log = logging.getLogger("akari.work_mode")
 
 SESSION_FILE = Path(__file__).parent / "data" / "active_session.json"
 
@@ -23,7 +23,7 @@ SESSION_FILE = Path(__file__).parent / "data" / "active_session.json"
 class WorkSession:
     """A claude -p session tied to a project directory.
 
-    Each project gets its own session. JARVIS can switch between projects
+    Each project gets its own session. AKARI can switch between projects
     and --continue picks up where the last message left off.
     """
 
@@ -99,7 +99,7 @@ class WorkSession:
                 error = stderr.decode().strip()[:200]
                 log.error(f"claude -p error: {error}")
                 self._status = "error"
-                return f"Hit a problem, sir: {error}"
+                return f"Hit a problem!: {error}"
 
             log.info(f"Claude Code response for {self._project_name} ({len(response)} chars)")
             return response
@@ -107,11 +107,11 @@ class WorkSession:
         except asyncio.TimeoutError:
             log.error("claude -p timed out after 300s")
             self._status = "timeout"
-            return "That's taking longer than expected, sir. The operation timed out."
+            return "That's taking longer than expected! The operation timed out."
         except Exception as e:
             log.error(f"Work mode error: {e}")
             self._status = "error"
-            return f"Something went wrong, sir: {str(e)[:100]}"
+            return f"Something went wrong!: {str(e)[:100]}"
 
     async def stop(self):
         """End the work session."""
@@ -169,13 +169,13 @@ def is_casual_question(text: str) -> bool:
     casual_patterns = [
         "what time", "what's the time", "what day",
         "what's the weather", "weather",
-        "how are you", "are you there", "hey jarvis",
+        "how are you", "are you there", "hey akari",
         "good morning", "good evening", "good night",
         "thank you", "thanks", "never mind", "nevermind",
         "stop", "cancel", "quit work mode", "exit work mode",
         "go back to chat", "regular mode",
         "how's it going", "what's up",
-        "are you still there", "you there", "jarvis",
+        "are you still there", "you there", "akari",
         "are you doing it", "is it working", "what happened",
         "did you hear me", "hello", "hey",
         "how's that coming", "hows that coming",

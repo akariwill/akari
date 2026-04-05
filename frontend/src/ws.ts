@@ -1,17 +1,17 @@
 /**
- * WebSocket client for JARVIS server communication.
+ * WebSocket client for AKARI server communication.
  */
 
 export type MessageHandler = (msg: Record<string, unknown>) => void;
 
-export interface JarvisSocket {
+export interface AkariSocket {
   send(data: Record<string, unknown>): void;
   onMessage(handler: MessageHandler): void;
   close(): void;
   isConnected(): boolean;
 }
 
-export function createSocket(url: string): JarvisSocket {
+export function createSocket(url: string): AkariSocket {
   let ws: WebSocket | null = null;
   let handlers: MessageHandler[] = [];
   let reconnectDelay = 1000;

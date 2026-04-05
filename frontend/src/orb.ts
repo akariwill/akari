@@ -1,5 +1,5 @@
 /**
- * JARVIS — Multi-mode particle visualization.
+ * AKARI — Multi-mode particle visualization.
  *
  * Floating particles with line connections between nearby ones.
  * Lines fade in/out based on state. Transition tumble on state change.
@@ -48,7 +48,7 @@ export function createOrb(canvas: HTMLCanvasElement): Orb {
   geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
 
   const mat = new THREE.PointsMaterial({
-    color: 0x4ca8e8, size: 0.4, transparent: true, opacity: 0.6,
+    color: 0xd8b4fe, size: 0.4, transparent: true, opacity: 0.6,
     sizeAttenuation: true, blending: THREE.AdditiveBlending, depthWrite: false,
   });
 
@@ -63,7 +63,7 @@ export function createOrb(canvas: HTMLCanvasElement): Orb {
   lineGeo.setDrawRange(0, 0);
 
   const lineMat = new THREE.LineBasicMaterial({
-    color: 0x4ca8e8, transparent: true, opacity: 0.0,
+    color: 0xd8b4fe, transparent: true, opacity: 0.0,
     blending: THREE.AdditiveBlending, depthWrite: false,
   });
 
@@ -302,9 +302,18 @@ export function createOrb(canvas: HTMLCanvasElement): Orb {
     mat.opacity = currentBright + bass * 0.08;
     mat.size = currentSize + bass * 0.05;
 
-    if (state === "thinking") { mat.color.lerp(new THREE.Color(0x6ec4ff), 0.015); lineMat.color.lerp(new THREE.Color(0x6ec4ff), 0.015); }
-    else if (state === "speaking") { mat.color.lerp(new THREE.Color(0x5ab8f0), 0.015); lineMat.color.lerp(new THREE.Color(0x5ab8f0), 0.015); }
-    else { mat.color.lerp(new THREE.Color(0x4ca8e8), 0.015); lineMat.color.lerp(new THREE.Color(0x4ca8e8), 0.015); }
+    if (state === "thinking") { 
+        mat.color.lerp(new THREE.Color(0xe9d5ff), 0.015); 
+        lineMat.color.lerp(new THREE.Color(0xe9d5ff), 0.015); 
+    }
+    else if (state === "speaking") { 
+        mat.color.lerp(new THREE.Color(0xc084fc), 0.015); 
+        lineMat.color.lerp(new THREE.Color(0xc084fc), 0.015); 
+    }
+    else { 
+        mat.color.lerp(new THREE.Color(0xd8b4fe), 0.015); 
+        lineMat.color.lerp(new THREE.Color(0xd8b4fe), 0.015); 
+    }
 
     camera.position.x = Math.sin(t * 0.02) * 5;
     camera.position.y = Math.cos(t * 0.03) * 3;

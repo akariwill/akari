@@ -1,5 +1,5 @@
 """
-JARVIS Action Executor — AppleScript-based system actions.
+AKARI Action Executor — AppleScript-based system actions.
 
 Execute actions IMMEDIATELY, before generating any LLM response.
 Each function returns {"success": bool, "confirmation": str}.
@@ -13,15 +13,15 @@ import time
 from pathlib import Path
 from urllib.parse import quote
 
-log = logging.getLogger("jarvis.actions")
+log = logging.getLogger("akari.actions")
 
 DESKTOP_PATH = Path.home() / "Desktop"
 
 
-async def _mark_terminal_as_jarvis(revert_after: float = 5.0):
+async def _mark_terminal_as_akari(revert_after: float = 5.0):
     """Temporarily set the front Terminal window to Ocean theme, then revert.
 
-    Shows the user JARVIS is active in that terminal. Reverts after revert_after seconds.
+    Shows the user AKARI is active in that terminal. Reverts after revert_after seconds.
     """
     # Save the current profile, switch to Ocean, then revert
     script_save = (
@@ -81,7 +81,7 @@ async def _revert_terminal_theme(profile_name: str):
 
 
 async def open_terminal(command: str = "") -> dict:
-    """Open Terminal.app and optionally run a command. Marks it blue for JARVIS."""
+    """Open Terminal.app and optionally run a command. Marks it blue for AKARI."""
     if command:
         escaped = command.replace('"', '\\"')
         script = (
@@ -106,10 +106,10 @@ async def open_terminal(command: str = "") -> dict:
     if not success:
         log.error(f"open_terminal failed: {stderr.decode()}")
     else:
-        await _mark_terminal_as_jarvis()
+        await _mark_terminal_as_akari()
     return {
         "success": success,
-        "confirmation": "Terminal is open, sir." if success else "I had trouble opening Terminal, sir.",
+        "confirmation": "Terminal is open!" if success else "I had trouble opening Terminal!",
     }
 
 
@@ -145,7 +145,7 @@ async def open_browser(url: str, browser: str = "chrome") -> dict:
         log.error(f"open_browser ({app_name}) failed: {stderr.decode()}")
     return {
         "success": success,
-        "confirmation": f"Pulled that up in {app_name}, sir." if success else f"{app_name} ran into a problem, sir.",
+        "confirmation": f"Pulled that up in {app_name}!" if success else f"{app_name} ran into a problem!",
     }
 
 
@@ -182,12 +182,12 @@ async def open_claude_in_project(project_dir: str, prompt: str) -> dict:
     if not success:
         log.error(f"open_claude_in_project failed: {stderr.decode()}")
     else:
-        await _mark_terminal_as_jarvis()
+        await _mark_terminal_as_akari()
     return {
         "success": success,
-        "confirmation": "Claude Code is running in Terminal, sir. You can watch the progress."
+        "confirmation": "Claude Code is running in Terminal! You can watch the progress."
         if success
-        else "Had trouble spawning Claude Code, sir.",
+        else "Had trouble spawning Claude Code!",
     }
 
 
@@ -252,7 +252,7 @@ return "OK"
         if result == "NOT_FOUND":
             return {
                 "success": False,
-                "confirmation": f"Couldn't find a terminal for {project_name}, sir.",
+                "confirmation": f"Couldn't find a terminal for {project_name}!",
             }
 
         success = proc.returncode == 0
@@ -260,19 +260,19 @@ return "OK"
             log.error(f"prompt_existing_terminal failed: {stderr.decode()[:200]}")
 
         if success:
-            await _mark_terminal_as_jarvis()
+            await _mark_terminal_as_akari()
 
         return {
             "success": success,
-            "confirmation": f"Sent that to {project_name}, sir." if success
-            else f"Had trouble typing into {project_name}, sir.",
+            "confirmation": f"Sent that to {project_name}!" if success
+            else f"Had trouble typing into {project_name}!",
         }
 
     except asyncio.TimeoutError:
-        return {"success": False, "confirmation": "Terminal operation timed out, sir."}
+        return {"success": False, "confirmation": "Terminal operation timed out!"}
     except Exception as e:
         log.error(f"prompt_existing_terminal failed: {e}")
-        return {"success": False, "confirmation": "Something went wrong reaching that terminal, sir."}
+        return {"success": False, "confirmation": "Something went wrong reaching that terminal!"}
 
 
 async def get_chrome_tab_info() -> dict:
@@ -306,7 +306,7 @@ async def monitor_build(project_dir: str, ws=None, synthesize_fn=None) -> None:
     """Monitor a Claude Code build for completion. Notify via WebSocket when done."""
     import base64
 
-    output_file = Path(project_dir) / ".jarvis_output.txt"
+    output_file = Path(project_dir) / ".akari_output.txt"
     start = time.time()
     timeout = 600  # 10 minutes
 
@@ -314,11 +314,11 @@ async def monitor_build(project_dir: str, ws=None, synthesize_fn=None) -> None:
         await asyncio.sleep(5)
         if output_file.exists():
             content = output_file.read_text()
-            if "--- JARVIS TASK COMPLETE ---" in content:
+            if "--- AKARI TASK COMPLETE ---" in content:
                 log.info(f"Build complete in {project_dir}")
                 if ws and synthesize_fn:
                     try:
-                        msg = "The build is complete, sir."
+                        msg = "The build is complete!"
                         audio_bytes = await synthesize_fn(msg)
                         if audio_bytes:
                             encoded = base64.b64encode(audio_bytes).decode()
@@ -404,4 +404,4 @@ def _generate_project_name(prompt: str) -> str:
             "on", "desktop", "that", "application", "app", "full", "stack", "simple",
             "web", "page", "site", "named"}
     meaningful = [w for w in words if w not in skip and len(w) > 2][:4]
-    return "-".join(meaningful) if meaningful else "jarvis-project"
+    return "-".join(meaningful) if meaningful else "akari-project"

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>JARVIS</title>
+    <title>AKARI</title>
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
@@ -33,8 +33,21 @@
     </div>
 
     <div id="status-text"></div>
-    <div id="jarvis-label">JARVIS</div>
+    <div id="akari-label">AKARI</div>
     <div id="error-text"></div>
+
+    <div id="start-overlay">
+      <div class="start-box">
+        <div class="start-title">AKARI WATANABE</div>
+        <div class="start-subtitle">Ready to assist you</div>
+        <button id="btn-start">Wake Up Akari</button>
+      </div>
+    </div>
+
+    <div id="akari-gif-container">
+      <img id="akari-gif" src="/data/akari.gif" alt="Akari Watanabe" />
+    </div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

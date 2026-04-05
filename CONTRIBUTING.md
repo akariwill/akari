@@ -1,49 +1,60 @@
-# Contributing to JARVIS
+# 🌸 Contributing to AKARI (渡辺 星)
 
-Thanks for your interest in contributing! Here's how to get involved.
+Thank you for your interest in contributing to AKARI! Akari is excited to have your help in making this project even more amazing. ✨
+
+---
 
 ## Getting Started
 
-1. Fork the repo
-2. Clone your fork
-3. Follow the setup instructions in the README
-4. Make your changes
-5. Test that JARVIS still works (start the server, talk to him)
-6. Submit a PR
+1.  **Fork** the repository and **clone** it to your machine.
+2.  Follow the **Setup & Installation** instructions in the [README.md](README.md).
+3.  Create a new branch for your feature or bug fix:
+    ```bash
+    git checkout -b feature/my-amazing-feature
+    ```
+4.  Make your changes and **test them locally** by starting the server and talking to Akari.
+5.  **Commit** your changes with clear messages.
+6.  Submit a **Pull Request** and describe your changes.
+
+---
 
 ## What We're Looking For
 
-- **Bug fixes** — if something's broken, fix it
-- **New integrations** — Spotify, Slack, Notion, etc.
-- **Windows/Linux support** — the AppleScript integrations are macOS-only, cross-platform alternatives welcome
-- **Better error handling** — things fail silently in places
-- **Voice improvements** — alternative TTS providers, better speech recognition
-- **New actions** — extend what JARVIS can do
+-   **Bug Fixes**: If something's broken, we'd love your help fixing it!
+-   **New Integrations**: Cross-platform support for Windows/Linux, more app integrations (Spotify, Slack, etc.).
+-   **Performance**: Low-latency voice responses and optimized orbital visualizations.
+-   **UI/UX**: Better accessibility and cooler Three.js visual effects.
+-   **Voice Quality**: Integration with more TTS and STT providers.
 
-## Code Style
+---
 
-Yes, `server.py` is a 2400-line monolith. It works. If you want to refactor parts into modules, that's welcome — just make sure nothing breaks.
+## Project Conventions
 
-- Keep voice responses short (1-2 sentences max)
-- Don't add dependencies unless necessary
-- Test your changes by actually talking to JARVIS
-- Keep the personality consistent — British butler, dry wit, economy of language
+When contributing, please keep the following in mind:
 
-## What NOT to Do
+### 1. The Akari Persona
+-   Keep voice responses **short** (1-2 sentences).
+-   Use an **energetic, cheerful, and friendly** tone.
+-   Use **honorifics** like "-kun" or "-san" to maintain the character's vibe.
 
-- Don't add telemetry or analytics
-- Don't send data to external services beyond the existing API calls (Anthropic, Fish Audio)
-- Don't add features that modify or delete user data in connected services (Mail, Calendar, Notes)
-- Don't break the existing voice loop
+### 2. Code Quality
+-   Follow **PEP 8** for Python and **Prettier** for TypeScript.
+-   Log errors appropriately and provide voice feedback for failures.
+-   Keep the codebase clean and avoid adding large dependencies unless necessary.
 
-## Reporting Issues
+### 3. Safety First
+-   **DO NOT** add features that can delete user data in connected services.
+-   **DO NOT** add tracking, telemetry, or analytics.
+-   Respect privacy and keep as much processing as possible on the local machine.
 
-Open an issue with:
-- What you expected to happen
-- What actually happened
-- Your OS and Python version
-- Any error messages from the terminal
+---
 
-## Questions?
+## Questions & Support
 
-Open an issue or start a discussion. Keep it simple.
+If you have questions or need help, feel free to open an **Issue** or start a **Discussion**.
+
+---
+
+<p align="center">
+  <i>"Let's build something beautiful together! ✨"</i>
+</p>

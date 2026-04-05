@@ -1,8 +1,5 @@
 /**
- * JARVIS — Main entry point.
- *
- * Wires together the orb visualization, WebSocket communication,
- * speech recognition, and audio playback into a single experience.
+ * AKARI — Main entry point.
  */
 
 import { createOrb, type OrbState } from "./orb";
@@ -18,9 +15,13 @@ import "./style.css";
 type State = "idle" | "listening" | "thinking" | "speaking";
 let currentState: State = "idle";
 let isMuted = false;
+let isWaitingForWelcome = true;
 
 const statusEl = document.getElementById("status-text")!;
 const errorEl = document.getElementById("error-text")!;
+const startOverlay = document.getElementById("start-overlay")!;
+const btnStart = document.getElementById("btn-start") as HTMLButtonElement;
+const akariGifContainer = document.getElementById("akari-gif-container")!;
 
 function showError(msg: string) {
   errorEl.textContent = msg;
@@ -47,8 +48,11 @@ function updateStatus(state: State) {
 const canvas = document.getElementById("orb-canvas") as HTMLCanvasElement;
 const orb = createOrb(canvas);
 
+// Use current window location to derive WS URL, ensuring it works through Vite proxy
+const isDev = window.location.port === "5173";
 const wsProto = window.location.protocol === "https:" ? "wss:" : "ws:";
-const WS_URL = `${wsProto}//${window.location.host}/ws/voice`;
+const wsHost = window.location.host;
+const WS_URL = `${wsProto}//${wsHost}/ws/voice`;
 const socket = createSocket(WS_URL);
 
 const audioPlayer = createAudioPlayer();
@@ -62,10 +66,10 @@ function transition(newState: State) {
 
   switch (newState) {
     case "idle":
-      if (!isMuted) voiceInput.resume();
+      if (!isMuted && !isWaitingForWelcome) voiceInput.resume();
       break;
     case "listening":
-      if (!isMuted) voiceInput.resume();
+      if (!isMuted && !isWaitingForWelcome) voiceInput.resume();
       break;
     case "thinking":
       voiceInput.pause();
@@ -82,9 +86,8 @@ function transition(newState: State) {
 
 const voiceInput = createVoiceInput(
   (text: string) => {
-    // Cancel any current JARVIS response before sending new input
+    if (isWaitingForWelcome) return;
     audioPlayer.stop();
-    // User spoke — send transcript
     socket.send({ type: "transcript", text, isFinal: true });
     transition("thinking");
   },
@@ -98,7 +101,14 @@ const voiceInput = createVoiceInput(
 // ---------------------------------------------------------------------------
 
 audioPlayer.onFinished(() => {
-  transition("idle");
+  if (isWaitingForWelcome) {
+    console.log("[welcome] finished, starting listening");
+    isWaitingForWelcome = false;
+    transition("listening");
+    voiceInput.start();
+  } else {
+    transition("idle");
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -110,63 +120,79 @@ socket.onMessage((msg) => {
 
   if (type === "audio") {
     const audioData = msg.data as string;
-    console.log("[audio] received", audioData ? `${audioData.length} chars` : "EMPTY", "state:", currentState);
     if (audioData) {
       if (currentState !== "speaking") {
         transition("speaking");
       }
       audioPlayer.enqueue(audioData);
     } else {
-      // TTS failed — no audio but still need to return to idle
-      console.warn("[audio] no data received, returning to idle");
       transition("idle");
     }
-    // Log text for debugging
-    if (msg.text) console.log("[JARVIS]", msg.text);
+    if (msg.text) console.log("[AKARI]", msg.text);
   } else if (type === "status") {
     const state = msg.state as string;
     if (state === "thinking" && currentState !== "thinking") {
       transition("thinking");
     } else if (state === "working") {
-      // Task spawned — show thinking with a different label
       transition("thinking");
       statusEl.textContent = "working...";
     } else if (state === "idle") {
-      transition("idle");
+      if (!isWaitingForWelcome) transition("idle");
     }
   } else if (type === "text") {
-    // Text fallback when TTS fails
-    console.log("[JARVIS]", msg.text);
-  } else if (type === "task_spawned") {
-    console.log("[task]", "spawned:", msg.task_id, msg.prompt);
-  } else if (type === "task_complete") {
-    console.log("[task]", "complete:", msg.task_id, msg.status, msg.summary);
+    console.log("[AKARI]", msg.text);
   }
 });
+
+// ---------------------------------------------------------------------------
+// Welcome Message Fetch & Play
+// ---------------------------------------------------------------------------
+
+async function playWelcomeSequence() {
+  try {
+    const resp = await fetch("/api/welcome-audio");
+    const data = await resp.json();
+    if (data.audio) {
+      console.log("[welcome] playing audio");
+      transition("speaking");
+      await audioPlayer.enqueue(data.audio);
+    } else {
+      console.warn("[welcome] no audio returned from API, skipping to listening");
+      isWaitingForWelcome = false;
+      transition("listening");
+      voiceInput.start();
+    }
+  } catch (err) {
+    console.error("[welcome] fetch error:", err);
+    isWaitingForWelcome = false;
+    transition("listening");
+    voiceInput.start();
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Kick off
 // ---------------------------------------------------------------------------
 
-// Start listening after a brief delay for the orb to render
-setTimeout(() => {
-  voiceInput.start();
-  transition("listening");
-}, 1000);
-
-// Resume AudioContext on ANY user interaction (browser autoplay policy)
-function ensureAudioContext() {
+btnStart.addEventListener("click", () => {
+  console.log("[start] user clicked start");
+  
+  // 1. Resume AudioContext
   const ctx = audioPlayer.getAnalyser().context as AudioContext;
-  if (ctx.state === "suspended") {
-    ctx.resume().then(() => console.log("[audio] context resumed"));
-  }
-}
-document.addEventListener("click", ensureAudioContext);
-document.addEventListener("touchstart", ensureAudioContext);
-document.addEventListener("keydown", ensureAudioContext, { once: true });
+  ctx.resume().then(() => {
+    // 2. Hide overlay
+    startOverlay.style.opacity = "0";
+    setTimeout(() => {
+      startOverlay.style.display = "none";
+    }, 500);
 
-// Try to resume audio context on load
-ensureAudioContext();
+    // 3. Show GIF if hidden
+    akariGifContainer.style.display = "block";
+
+    // 4. Play Welcome Sequence
+    playWelcomeSequence();
+  });
+});
 
 // ---------------------------------------------------------------------------
 // UI Controls
@@ -186,8 +212,10 @@ btnMute.addEventListener("click", (e) => {
     voiceInput.pause();
     transition("idle");
   } else {
-    voiceInput.resume();
-    transition("listening");
+    if (!isWaitingForWelcome) {
+      voiceInput.resume();
+      transition("listening");
+    }
   }
 });
 
@@ -206,7 +234,6 @@ btnRestart.addEventListener("click", async (e) => {
   statusEl.textContent = "restarting...";
   try {
     await fetch("/api/restart", { method: "POST" });
-    // Wait a few seconds then reload
     setTimeout(() => window.location.reload(), 4000);
   } catch {
     statusEl.textContent = "restart failed";
@@ -216,12 +243,10 @@ btnRestart.addEventListener("click", async (e) => {
 btnFixSelf.addEventListener("click", (e) => {
   e.stopPropagation();
   menuDropdown.style.display = "none";
-  // Activate work mode on the WebSocket session (JARVIS becomes Claude Code's voice)
   socket.send({ type: "fix_self" });
   statusEl.textContent = "entering work mode...";
 });
 
-// Settings button
 const btnSettings = document.getElementById("btn-settings")!;
 btnSettings.addEventListener("click", (e) => {
   e.stopPropagation();
@@ -229,7 +254,6 @@ btnSettings.addEventListener("click", (e) => {
   openSettings();
 });
 
-// First-time setup detection — check after a short delay for server readiness
 setTimeout(() => {
   checkFirstTimeSetup();
 }, 2000);

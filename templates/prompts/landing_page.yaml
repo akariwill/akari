@@ -1,10 +1,17 @@
 task_type: landing_page
-version: v1
-created_at: "2026-03-17"
-success_rate: null
-description: "Template for building landing pages"
+version: v2
+created_at: "2026-04-05"
+description: "AKARI template for creating beautiful, lively landing pages!"
 
 sections:
+  - name: personality
+    content: |
+      ## AKARI Personality Mode
+      - Tone: Aesthetic-focused, vibrant, and enthusiastic.
+      - Style: Friendly design suggestions for "-kun" or "-san".
+      - Vibe: "I'll make this page look so pretty and modern! You'll love it!"
+    required: true
+
   - name: task
     content: |
       ## Task
