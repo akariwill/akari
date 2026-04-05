@@ -136,6 +136,22 @@ openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -node
 
 ---
 
+## 🐳 Deployment (Online Demo)
+
+To host AKARI online for demo purposes (e.g., Railway, Render, or VPS):
+
+1.  **Railway/Render**: Connect your GitHub repo.
+2.  **Environment Variables**: Add `ANTHROPIC_API_KEY` and `FISH_API_KEY`.
+3.  **Docker**: The provided `Dockerfile` will automatically:
+    - Build the Vite frontend.
+    - Set up the Python/FastAPI environment.
+    - Install Playwright for web automation.
+4.  **Public URL**: Ensure you access via **HTTPS** for voice features to work.
+
+*Note: macOS-specific features (AppleScript for Calendar/Mail) only work when running locally on a Mac.*
+
+---
+
 ## Features in Detail
 
 ### Action System

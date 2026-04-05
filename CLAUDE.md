@@ -18,6 +18,12 @@ If you are helping a user set up AKARI for the first time, follow these steps:
     -   Terminal 2: `cd frontend && npm run dev`
 5.  **Browser**: Open `http://localhost:5173` in Google Chrome.
 
+### Docker Deployment
+For quick cloud deployment (Railway, Render, etc.):
+-   **Dockerfile**: Uses multi-stage build (Vite build + FastAPI).
+-   **Command**: `uvicorn server:app --host 0.0.0.0 --port $PORT`
+-   **Note**: macOS system features (AppleScript) will not work in Linux Docker containers.
+
 ---
 
 ## Architecture Summary

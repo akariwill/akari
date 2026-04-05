@@ -2548,6 +2548,12 @@ if __name__ == "__main__":
     parser.add_argument("--ssl", action="store_true", help="Enable HTTPS with key.pem/cert.pem")
     args = parser.parse_args()
 
+    # Support for Railway/Render PORT env var
+    import os
+    env_port = int(os.environ.get("PORT", 8340))
+    if env_port != 8340:
+        args.port = env_port
+
     # Auto-detect SSL certs
     cert_file = Path(__file__).parent / "cert.pem"
     key_file = Path(__file__).parent / "key.pem"
