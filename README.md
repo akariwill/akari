@@ -136,7 +136,9 @@ openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -node
 
 ---
 
-## 🐳 Deployment (Online Demo)
+## Deployment (Online Demo)
+
+**Demo Website**: [akari-assistant.up.railway.app](https://akari-assistant.up.railway.app/)
 
 To host AKARI online for demo purposes (e.g., Railway, Render, or VPS):
 
