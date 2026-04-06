@@ -20,6 +20,22 @@
 
 ---
 
+## Quick Start (PyPI)
+
+Install and run AKARI directly from your terminal!
+
+```bash
+# Install AKARI
+pip install akari-cli
+
+# Run AKARI
+akari
+```
+
+*Note: On your first run, AKARI will guide you through setting up your API keys (Anthropic & Fish Audio) directly in the terminal.*
+
+---
+
 ## Screenshots
 
 <p align="center">
@@ -44,6 +60,7 @@
 Experience AKARI directly from your terminal! The CLI version is built for developers who want a fast, lightweight, and powerful interaction without opening a browser.
 
 ### CLI Features
+- **Easy Setup** -- Interactive API key and username configuration on first run.
 - **Real-time Voice** -- Just like the web version, AKARI speaks to you using the local high-quality audio files or the Fish Audio API.
 - **Dynamic Typing Effect** -- Responses flow naturally with a typewriter effect, synchronized with AKARI's voice.
 - **Project Awareness** -- Automatically scans your Desktop for git repositories to understand your workspace context.
@@ -54,13 +71,14 @@ Experience AKARI directly from your terminal! The CLI version is built for devel
 | Command | Description |
 |---------|-------------|
 | `/help` | Show help table with AKARI's voice guidance. |
+| `/auth` | Update your API keys (Anthropic/Fish) or username interactively. |
 | `/clear` | Clear the terminal and reset conversation context. |
 | `/tasks` | List all your open tasks and reminders. |
 | `/projects` | Show all detected projects on your Desktop. |
 | `/restart` | Restart the CLI environment and re-initialize systems. |
 | `/quit` | Sayonara! Closes the CLI with a parting message. |
 
-### How to Run
+### How to Run (Local Source)
 ```bash
 python akari_cli.py
 ```
@@ -125,7 +143,7 @@ graph TD
 
 ---
 
-## Installation & Usage
+## Installation & Usage (Manual Setup)
 
 For detailed step-by-step instructions, please see **[CLAUDE.md](CLAUDE.md)**.
 
@@ -163,7 +181,8 @@ openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -node
 
 | File | Purpose |
 |------|---------|
-| `server.py` | Main server -- WebSocket handler, LLM, action system. |
+| `akari_cli/server.py` | Main server -- WebSocket handler, LLM, action system. |
+| `akari_cli/akari_cli.py` | Main CLI entrypoint and voice interaction logic. |
 | `frontend/src/orb.ts` | Three.js particle orb visualization (Lilac theme). |
 | `frontend/src/voice.ts` | Web Speech API + audio playback management. |
 | `actions.py` | System actions (Terminal, Chrome, Claude Code). |
@@ -180,10 +199,7 @@ To host AKARI online for demo purposes (e.g., Railway, Render, or VPS):
 
 1.  **Railway/Render**: Connect your GitHub repo.
 2.  **Environment Variables**: Add `ANTHROPIC_API_KEY` and `FISH_API_KEY`.
-3.  **Docker**: The provided `Dockerfile` will automatically:
-    - Build the Vite frontend.
-    - Set up the Python/FastAPI environment.
-    - Install Playwright for web automation.
+3.  **Docker**: The provided `Dockerfile` will automatically build the Vite frontend and set up the Python environment.
 4.  **Public URL**: Ensure you access via **HTTPS** for voice features to work.
 
 *Note: macOS-specific features (AppleScript for Calendar/Mail) only work when running locally on a Mac.*

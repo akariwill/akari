@@ -17,14 +17,10 @@ import sys
 import time
 from pathlib import Path
 
-# Load .env file if present
-_env_path = Path(__file__).parent / ".env"
-if _env_path.exists():
-    for _line in _env_path.read_text().splitlines():
-        _line = _line.strip()
-        if _line and not _line.startswith("#") and "=" in _line:
-            _k, _, _v = _line.partition("=")
-            os.environ.setdefault(_k.strip(), _v.strip().strip('"').strip("'"))
+# Load config using shared utility
+from config import load_config
+load_config()
+
 import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field, asdict
@@ -2335,53 +2331,24 @@ async def voice_handler(ws: WebSocket):
         task_manager.unregister_websocket(ws)
 
 
-# ---------------------------------------------------------------------------
 # Settings / Configuration endpoints
 # ---------------------------------------------------------------------------
 
-def _env_file_path() -> Path:
-    return Path(__file__).parent / ".env"
+from config import save_config_value, get_config_path
 
-def _env_example_path() -> Path:
-    return Path(__file__).parent / ".env.example"
-
-def _read_env() -> tuple[list[str], dict[str, str]]:
-    """Read .env file. Returns (raw_lines, parsed_dict). Creates from .env.example if missing."""
-    path = _env_file_path()
-    if not path.exists():
-        example = _env_example_path()
-        if example.exists():
-            import shutil as _shutil
-            _shutil.copy2(str(example), str(path))
-        else:
-            path.write_text("")
-    lines = path.read_text().splitlines()
+def _read_env_keys() -> dict[str, str]:
+    """Read the current config keys."""
+    config_path = get_config_path()
+    if not config_path.exists():
+        return {}
+    
     parsed: dict[str, str] = {}
-    for line in lines:
+    for line in config_path.read_text().splitlines():
         stripped = line.strip()
         if stripped and not stripped.startswith("#") and "=" in stripped:
             k, _, v = stripped.partition("=")
             parsed[k.strip()] = v.strip().strip('"').strip("'")
-    return lines, parsed
-
-def _write_env_key(key: str, value: str) -> None:
-    """Update a single key in .env, preserving comments and order."""
-    lines, _ = _read_env()
-    found = False
-    new_lines = []
-    for line in lines:
-        stripped = line.strip()
-        if stripped and not stripped.startswith("#") and "=" in stripped:
-            k, _, _ = stripped.partition("=")
-            if k.strip() == key:
-                new_lines.append(f"{key}={value}")
-                found = True
-                continue
-        new_lines.append(line)
-    if not found:
-        new_lines.append(f"{key}={value}")
-    _env_file_path().write_text("\n".join(new_lines) + "\n")
-    os.environ[key] = value
+    return parsed
 
 class KeyUpdate(BaseModel):
     key_name: str
@@ -2400,7 +2367,7 @@ async def api_settings_keys(body: KeyUpdate):
     allowed = {"ANTHROPIC_API_KEY", "FISH_API_KEY", "FISH_VOICE_ID", "USER_NAME", "HONORIFIC", "CALENDAR_ACCOUNTS"}
     if body.key_name not in allowed:
         return JSONResponse({"success": False, "error": "Invalid key name"}, status_code=400)
-    _write_env_key(body.key_name, body.key_value)
+    save_config_value(body.key_name, body.key_value)
     return {"success": True}
 
 @app.post("/api/settings/test-anthropic")
@@ -2439,7 +2406,7 @@ async def api_test_fish(body: KeyTest):
 @app.get("/api/settings/status")
 async def api_settings_status():
     import shutil as _shutil
-    _, env_dict = _read_env()
+    env_dict = _read_env_keys()
     claude_installed = _shutil.which("claude") is not None
     calendar_ok = mail_ok = notes_ok = False
     try: await get_todays_events(); calendar_ok = True
@@ -2472,7 +2439,7 @@ async def api_settings_status():
 
 @app.get("/api/settings/preferences")
 async def api_get_preferences():
-    _, env_dict = _read_env()
+    env_dict = _read_env_keys()
     return {
         "user_name": env_dict.get("USER_NAME", "kun"),
         "honorific": env_dict.get("HONORIFIC", "kun"),
@@ -2481,9 +2448,9 @@ async def api_get_preferences():
 
 @app.post("/api/settings/preferences")
 async def api_save_preferences(body: PreferencesUpdate):
-    _write_env_key("USER_NAME", body.user_name)
-    _write_env_key("HONORIFIC", body.honorific)
-    _write_env_key("CALENDAR_ACCOUNTS", body.calendar_accounts)
+    save_config_value("USER_NAME", body.user_name)
+    save_config_value("HONORIFIC", body.honorific)
+    save_config_value("CALENDAR_ACCOUNTS", body.calendar_accounts)
     return {"success": True}
 
 # ---------------------------------------------------------------------------

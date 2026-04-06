@@ -1,4 +1,8 @@
 # Environment
+# Build artifacts
+build/
+dist/
+*.egg-info/
 .env
 .env.local
 

@@ -1,0 +1,7 @@
+recursive-include akari_cli/data *.mp3 *.jpg *.png *.gif *.db *.gitkeep
+recursive-include akari_cli/templates *.yaml
+include requirements.txt
+include README.md
+include LICENSE
+global-exclude __pycache__
+global-exclude *.py[cod]
