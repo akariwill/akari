@@ -35,7 +35,43 @@
 
 ---
 
-## ✨ What It Does
+## AKARI CLI (Terminal Version)
+
+<p align="center">
+  <img src="data/cli.png" alt="AKARI CLI" width="80%" style="border-radius: 8px; border: 1px solid #ec4899;"/>
+</p>
+
+Experience AKARI directly from your terminal! The CLI version is built for developers who want a fast, lightweight, and powerful interaction without opening a browser.
+
+### CLI Features
+- **Real-time Voice** -- Just like the web version, AKARI speaks to you using the local high-quality audio files or the Fish Audio API.
+- **Dynamic Typing Effect** -- Responses flow naturally with a typewriter effect, synchronized with AKARI's voice.
+- **Project Awareness** -- Automatically scans your Desktop for git repositories to understand your workspace context.
+- **Autonomous Task Execution** -- Planning and building projects (via Claude Code) happens directly in new terminal windows without needing confirmation.
+- **Integrated Memory** -- Notes, tasks, and facts are saved to the same shared database as the web version.
+
+### Slash Commands
+| Command | Description |
+|---------|-------------|
+| `/help` | Show help table with AKARI's voice guidance. |
+| `/clear` | Clear the terminal and reset conversation context. |
+| `/tasks` | List all your open tasks and reminders. |
+| `/projects` | Show all detected projects on your Desktop. |
+| `/restart` | Restart the CLI environment and re-initialize systems. |
+| `/quit` | Sayonara! Closes the CLI with a parting message. |
+
+### How to Run
+```bash
+python akari_cli.py
+```
+Or run with a direct command:
+```bash
+python akari_cli.py "build me a python script to scrape news"
+```
+
+---
+
+## What It Does
 
 - **Voice conversation** -- speak naturally, get spoken responses with an AKARI voice.
 - **Builds software** -- say "build me a landing page" and watch Claude Code do the work.
@@ -51,7 +87,7 @@
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|

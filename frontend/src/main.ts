@@ -194,6 +194,20 @@ btnStart.addEventListener("click", () => {
   });
 });
 
+async function playRestartSequence() {
+  try {
+    const resp = await fetch("/api/restart-audio");
+    const data = await resp.json();
+    if (data.audio) {
+      console.log("[restart] playing audio");
+      transition("speaking");
+      await audioPlayer.enqueue(data.audio);
+    }
+  } catch (err) {
+    console.error("[restart] fetch error:", err);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // UI Controls
 // ---------------------------------------------------------------------------
@@ -232,9 +246,14 @@ btnRestart.addEventListener("click", async (e) => {
   e.stopPropagation();
   menuDropdown.style.display = "none";
   statusEl.textContent = "restarting...";
+  
+  // Play restart voice first
+  playRestartSequence();
+
   try {
     await fetch("/api/restart", { method: "POST" });
-    setTimeout(() => window.location.reload(), 4000);
+    // Wait for the audio to play and server to bounce
+    setTimeout(() => window.location.reload(), 5000);
   } catch {
     statusEl.textContent = "restart failed";
   }

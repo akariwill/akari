@@ -1378,6 +1378,16 @@ async def get_welcome_audio():
     return {"audio": None, "error": "Welcome audio not found"}
 
 
+@app.get("/api/restart-audio")
+async def get_restart_audio():
+    """Returns the restart message mp3 as base64."""
+    restart_path = Path(__file__).parent / "data" / "audio" / "[Akari Watanabe] Restart.mp3"
+    if restart_path.exists():
+        audio_bytes = restart_path.read_bytes()
+        return {"audio": base64.b64encode(audio_bytes).decode()}
+    return {"audio": None, "error": "Restart audio not found"}
+
+
 @app.get("/api/tts-test")
 async def tts_test():
     """Generate a test audio clip for debugging."""
