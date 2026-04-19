@@ -45,17 +45,19 @@ def save_config_value(key: str, value: str):
     os.environ[key] = value
 
 def ensure_config():
-    """Ensures that required configuration (API keys) exists, prompting if necessary."""
-    config_path = get_config_path()
-    
+    """Ensures that required configuration (API keys) exists, prompting if necessary (interactive only)."""
     # Load existing config first
     load_config()
     
-    # If the file doesn't exist, or required keys are missing, we must prompt.
+    # Check if we have what we need in environment variables
     required_keys = ["ANTHROPIC_API_KEY"]
     missing = [k for k in required_keys if not os.getenv(k)]
     
-    if missing or not config_path.exists():
+    # If we are in a non-interactive environment (like Docker/Railway), 
+    # we don't prompt, we just rely on environment variables.
+    is_interactive = sys.stdout.isatty()
+    
+    if missing and is_interactive:
         console.print(Panel(Text("Welcome to Akari! Let's set up your API keys. 🌸", style="magenta"), border_style="magenta"))
         
         anthropic_key = os.getenv("ANTHROPIC_API_KEY")
@@ -80,10 +82,15 @@ def ensure_config():
             user_name = Prompt.ask("[bold cyan]How should I call you? (Username)[/bold cyan]", default="kun")
             save_config_value("USER_NAME", user_name)
 
-        console.print(Panel(Text(f"Setup complete, {os.getenv('USER_NAME')}! Configuration saved to {config_path} ✨", style="magenta"), border_style="magenta"))
+        console.print(Panel(Text(f"Setup complete, {os.getenv('USER_NAME')}! Configuration saved ✨", style="magenta"), border_style="magenta"))
+    elif missing:
+        # On Railway/Docker, we expect environment variables to be set.
+        # If they are missing, we should log a warning but not exit immediately 
+        # as some parts might work without them (or the user might set them later).
+        print(f"WARNING: Missing required environment variables: {', '.join(missing)}")
     else:
-        # Just ensure everything is loaded
-        load_config()
+        # All good, or at least we have the environment variables.
+        pass
 
 if __name__ == "__main__":
     ensure_config()

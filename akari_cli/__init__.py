@@ -1,1 +1,2 @@
-from .akari_cli import main
+# AKARI Package
+__version__ = "0.1.0"

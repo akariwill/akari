@@ -10,15 +10,22 @@ No send, delete, move, or modify functions exist by design.
 
 import asyncio
 import logging
+import sys
 from datetime import datetime
 
 log = logging.getLogger("akari.mail")
+
+# Global OS check
+IS_MACOS = sys.platform == "darwin"
 
 _mail_launched = False
 
 
 async def _ensure_mail_running():
     """Launch Mail.app if not already running."""
+    if not IS_MACOS:
+        return
+
     global _mail_launched
     if _mail_launched:
         return
@@ -53,6 +60,9 @@ async def _ensure_mail_running():
 
 async def _run_mail_script(script: str, timeout: float = 20) -> str:
     """Run an AppleScript against Mail.app and return output."""
+    if not IS_MACOS:
+        return ""
+
     await _ensure_mail_running()
     try:
         proc = await asyncio.create_subprocess_exec(
@@ -78,6 +88,9 @@ async def _run_mail_script(script: str, timeout: float = 20) -> str:
 
 async def get_accounts() -> list[str]:
     """Get list of configured mail account names."""
+    if not IS_MACOS:
+        return []
+
     script = """
 tell application "Mail"
     return name of every account
@@ -94,6 +107,9 @@ async def get_unread_count() -> dict:
 
     Returns: {"total": int, "accounts": {"Google": 5, "Work": 3, ...}}
     """
+    if not IS_MACOS:
+        return {"total": 0, "accounts": {}}
+
     script = """
 tell application "Mail"
     set totalUnread to unread count of inbox
@@ -110,6 +126,9 @@ end tell
 """
     raw = await _run_mail_script(script)
     result = {"total": 0, "accounts": {}}
+    if not raw:
+        return result
+
     for line in raw.split("\n"):
         line = line.strip()
         if ":" in line:

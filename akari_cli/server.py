@@ -17,11 +17,17 @@ import sys
 import time
 from pathlib import Path
 
+# Add the current directory to sys.path to ensure relative imports work correctly
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 # Load config using shared utility
 from config import load_config
 load_config()
 
 import uuid
+
+# Global OS check
+IS_MACOS = sys.platform == "darwin"
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
@@ -385,20 +391,25 @@ class ClaudeTaskManager:
         prompt_file.write_text(task.prompt)
 
         # Open Terminal.app with claude running in the project directory
-        applescript = f'''
-        tell application "Terminal"
-            activate
-            set newTab to do script "cd {work_dir} && cat .akari_prompt.md | claude -p --dangerously-skip-permissions | tee .akari_output.txt; echo '\\n--- AKARI TASK COMPLETE ---'"
-        end tell
-        '''
+        if IS_MACOS:
+            applescript = f'''
+            tell application "Terminal"
+                activate
+                set newTab to do script "cd {work_dir} && cat .akari_prompt.md | claude -p --dangerously-skip-permissions | tee .akari_output.txt; echo '\\n--- AKARI TASK COMPLETE ---'"
+            end tell
+            '''
 
-        process = await asyncio.create_subprocess_exec(
-            "osascript", "-e", applescript,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        await process.communicate()
-        task.pid = process.pid
+            process = await asyncio.create_subprocess_exec(
+                "osascript", "-e", applescript,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            await process.communicate()
+            task.pid = process.pid
+        else:
+            log.info(f"Non-macOS: Skipping terminal window for task {task.id}")
+            # On Linux, we could run claude -p directly in background if needed
+            # for now just mark as skipping terminal
 
         # Monitor the output file for completion
         output_file = Path(work_dir) / ".akari_output.txt"
@@ -840,6 +851,9 @@ async def _execute_research(target: str, ws=None):
 
 async def _focus_terminal_window(project_name: str):
     """Bring a Terminal window matching the project name to front."""
+    if not IS_MACOS:
+        return
+
     escaped = project_name.replace('"', '\\"')
     script = f'''
 tell application "Terminal"
@@ -1266,9 +1280,10 @@ def _refresh_context_sync():
         while True:
             try:
                 # Screen — fast
-                try:
-                    proc = __import__("subprocess").run(
-                        ["osascript", "-e", '''
+                if IS_MACOS:
+                    try:
+                        proc = __import__("subprocess").run(
+                            ["osascript", "-e", '''
 set windowList to ""
 tell application "System Events"
     set frontApp to name of first application process whose frontmost is true
@@ -1292,21 +1307,24 @@ tell application "System Events"
 end tell
 return windowList
 '''],
-                        capture_output=True, text=True, timeout=5
-                    )
-                    if proc.returncode == 0 and proc.stdout.strip():
-                        windows = []
-                        for line in proc.stdout.strip().split("\n"):
-                            parts = line.strip().split("|||")
-                            if len(parts) >= 3:
-                                windows.append({
-                                    "app": parts[0].strip(),
-                                    "title": parts[1].strip(),
-                                    "frontmost": parts[2].strip().lower() == "true",
-                                })
-                        if windows:
-                            _ctx_cache["screen"] = format_windows_for_context(windows)
-                except Exception:
+                            capture_output=True, text=True, timeout=5
+                        )
+                        if proc.returncode == 0 and proc.stdout.strip():
+                            windows = []
+                            for line in proc.stdout.strip().split("\n"):
+                                parts = line.strip().split("|||")
+                                if len(parts) >= 3:
+                                    windows.append({
+                                        "app": parts[0].strip(),
+                                        "title": parts[1].strip(),
+                                        "frontmost": parts[2].strip().lower() == "true",
+                                    })
+                            if windows:
+                                _ctx_cache["screen"] = format_windows_for_context(windows)
+                    except Exception:
+                        pass
+                else:
+                    # Non-macOS fallback: maybe list processes or just skip
                     pass
 
             except Exception as e:
@@ -1555,17 +1573,22 @@ async def handle_build(target: str) -> str:
     prompt_file = Path(path) / ".akari_prompt.txt"
     prompt_file.write_text(target)
 
-    script = (
-        'tell application "Terminal"\n'
-        "    activate\n"
-        f'    do script "cd {path} && cat .akari_prompt.txt | claude -p --dangerously-skip-permissions"\n'
-        "end tell"
-    )
-    await asyncio.create_subprocess_exec(
-        "osascript", "-e", script,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
+    if IS_MACOS:
+        script = (
+            'tell application "Terminal"\n'
+            "    activate\n"
+            f'    do script "cd {path} && cat .akari_prompt.txt | claude -p --dangerously-skip-permissions"\n'
+            "end tell"
+        )
+        await asyncio.create_subprocess_exec(
+            "osascript", "-e", script,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+    else:
+        log.info(f"Non-macOS: Claude Code would be started in {path}")
+        # In Docker/Railway, we don't open a terminal window.
+        # We might want to run it in background, but for now just acknowledge.
 
     recently_built.append({"name": name, "path": path, "time": time.time()})
     return f"On it! Claude Code is working in {name}."
@@ -1590,10 +1613,13 @@ async def handle_show_recent() -> str:
         await open_browser(f"file://{html_files[0]}")
         return f"Opened {html_files[0].name} from {last['name']}!"
 
-    # Fall back to opening the folder in Finder
-    script = f'tell application "Finder"\nactivate\nopen POSIX file "{last["path"]}"\nend tell'
-    await asyncio.create_subprocess_exec("osascript", "-e", script, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-    return f"Opened the {last['name']} folder in Finder!"
+    # Fall back to opening the folder in Finder (macOS only)
+    if IS_MACOS:
+        script = f'tell application "Finder"\nactivate\nopen POSIX file "{last["path"]}"\nend tell'
+        await asyncio.create_subprocess_exec("osascript", "-e", script, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+        return f"Opened the {last['name']} folder in Finder!"
+    else:
+        return f"Built project found at {last['path']}. (Finder not available on non-macOS)"
 
 
 # ---------------------------------------------------------------------------
@@ -2475,17 +2501,21 @@ async def api_fix_self():
     akari_dir = str(Path(__file__).parent)
     # The work_session is per-WebSocket, so we set a flag that the handler picks up
     # For now, also open Terminal so user can see
-    script = (
-        'tell application "Terminal"\n'
-        '    activate\n'
-        f'    do script "cd {akari_dir} && claude --dangerously-skip-permissions"\n'
-        'end tell'
-    )
-    await asyncio.create_subprocess_exec(
-        "osascript", "-e", script,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
+    if IS_MACOS:
+        script = (
+            'tell application "Terminal"\n'
+            '    activate\n'
+            f'    do script "cd {akari_dir} && claude --dangerously-skip-permissions"\n'
+            'end tell'
+        )
+        await asyncio.create_subprocess_exec(
+            "osascript", "-e", script,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+    else:
+        log.info(f"Non-macOS: AKARI repo at {akari_dir} would be opened for self-improvement")
+    
     log.info("Work mode: AKARI repo opened for self-improvement")
     return {"status": "work_mode_active", "path": akari_dir}
 
@@ -2497,24 +2527,53 @@ async def api_fix_self():
 from starlette.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
+# Check both possible locations for frontend dist
 FRONTEND_DIST = Path(__file__).parent / "frontend" / "dist"
-
-if FRONTEND_DIST.exists():
-    @app.get("/")
-    async def serve_index():
-        return FileResponse(str(FRONTEND_DIST / "index.html"))
-
-    app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="assets")
+if not FRONTEND_DIST.exists():
+    # Try relative to the root (useful for Docker/Railway)
+    FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
 
 # Mount /data directory so frontend can access akari.gif
-app.mount("/data", StaticFiles(directory=str(Path(__file__).parent / "data")), name="data")
+DATA_DIR = Path(__file__).parent / "data"
+if not DATA_DIR.exists():
+    DATA_DIR = Path(__file__).parent.parent / "data"
+
+if DATA_DIR.exists():
+    app.mount("/data", StaticFiles(directory=str(DATA_DIR)), name="data")
+
+if FRONTEND_DIST.exists():
+    log.info(f"Serving frontend from {FRONTEND_DIST}")
+    
+    # Mount assets folder
+    assets_dir = FRONTEND_DIST / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def catch_all(full_path: str):
+        # Exclude API and WebSocket paths from catch-all
+        if full_path.startswith("api/") or full_path.startswith("ws/"):
+            return JSONResponse(status_code=404, content={"detail": "Not Found"})
+            
+        # Check if the requested file exists
+        file_path = FRONTEND_DIST / full_path
+        if file_path.exists() and file_path.is_file():
+            return FileResponse(str(file_path))
+            
+        # Fallback to index.html for SPA routing
+        return FileResponse(str(FRONTEND_DIST / "index.html"))
+else:
+    log.warning(f"Frontend dist not found at {FRONTEND_DIST}")
+    @app.get("/")
+    async def root_fallback():
+        return {"message": "AKARI Server is running, but frontend was not found.", "frontend_path": str(FRONTEND_DIST)}
 
 
 # ---------------------------------------------------------------------------
 # Entrypoint
 # ---------------------------------------------------------------------------
 
-if __name__ == "__main__":
+def main():
     import argparse
     import uvicorn
 
@@ -2552,10 +2611,13 @@ if __name__ == "__main__":
         ssl_kwargs["ssl_certfile"] = str(cert_file)
 
     uvicorn.run(
-        "server:app",
+        "akari_cli.server:app",
         host=args.host,
         port=args.port,
         reload=args.reload,
         log_level="info",
         **ssl_kwargs,
     )
+
+if __name__ == "__main__":
+    main()

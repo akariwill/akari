@@ -7,12 +7,19 @@ CANNOT edit or delete existing notes (safety).
 
 import asyncio
 import logging
+import sys
 
 log = logging.getLogger("akari.notes")
+
+# Global OS check
+IS_MACOS = sys.platform == "darwin"
 
 
 async def _run_notes_script(script: str, timeout: float = 10) -> str:
     """Run an AppleScript against Notes.app."""
+    if not IS_MACOS:
+        return ""
+
     try:
         proc = await asyncio.create_subprocess_exec(
             "osascript", "-e", script,
@@ -34,6 +41,9 @@ async def _run_notes_script(script: str, timeout: float = 10) -> str:
 
 async def get_recent_notes(count: int = 10) -> list[dict]:
     """Get most recent notes (title + creation date)."""
+    if not IS_MACOS:
+        return []
+
     script = f'''
 tell application "Notes"
     set output to ""
@@ -67,6 +77,9 @@ end tell
 
 async def read_note(title_match: str) -> dict | None:
     """Read a note by title (partial match). Returns title + body."""
+    if not IS_MACOS:
+        return None
+
     escaped = title_match.replace('"', '\\"')
     script = f'''
 tell application "Notes"
@@ -94,6 +107,9 @@ end tell
 
 async def search_notes_apple(query: str, count: int = 5) -> list[dict]:
     """Search notes by title keyword."""
+    if not IS_MACOS:
+        return []
+
     escaped = query.replace('"', '\\"')
     script = f'''
 tell application "Notes"
@@ -126,6 +142,9 @@ async def create_apple_note(title: str, body: str, folder: str = "Notes") -> boo
 
     Supports checklist items: lines starting with "- [ ]" or "- [x]" become checkboxes.
     """
+    if not IS_MACOS:
+        return False
+
     # Convert markdown-style checklists to HTML
     html_body = _body_to_html(body)
 
@@ -187,6 +206,9 @@ def _body_to_html(body: str) -> str:
 
 async def get_note_folders() -> list[str]:
     """Get list of note folder names."""
+    if not IS_MACOS:
+        return []
+
     script = '''
 tell application "Notes"
     set output to ""
@@ -197,4 +219,6 @@ tell application "Notes"
 end tell
 '''
     raw = await _run_notes_script(script)
+    if not raw:
+        return []
     return [f.strip() for f in raw.split("\n") if f.strip()]

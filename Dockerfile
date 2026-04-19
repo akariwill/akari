@@ -25,6 +25,9 @@ RUN playwright install-deps chromium
 # Copy app code
 COPY . .
 
+# Install the project itself as a package
+RUN pip install .
+
 # Copy built frontend from Stage 1
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
@@ -32,7 +35,6 @@ COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 ENV PORT=8340
 EXPOSE $PORT
 
-# Run the server
-# Note: In production, we don't use SSL cert files directly in uvicorn 
-# if we're behind a proxy like Railway/Render.
-CMD ["python", "-m", "uvicorn", "akari_cli.server:app", "--host", "0.0.0.0", "--port", "8340"]
+# Run the server using uvicorn directly to ensure it picks up the app correctly
+# We use shell form to expand the $PORT variable provided by Railway
+CMD uvicorn akari_cli.server:app --host 0.0.0.0 --port ${PORT:-8340}

@@ -8,11 +8,15 @@ filter dates in Python. Results cached and refreshed in background.
 import asyncio
 import logging
 import os
+import sys
 import time as _time
 from datetime import datetime, timedelta
 from pathlib import Path
 
 log = logging.getLogger("akari.calendar")
+
+# Global OS check
+IS_MACOS = sys.platform == "darwin"
 
 # Calendars to scan — set CALENDAR_ACCOUNTS env var to a comma-separated list,
 # or leave empty to auto-discover ALL calendars from Apple Calendar.
@@ -46,6 +50,9 @@ end tell
 
 async def _ensure_calendar_running():
     """Launch Calendar.app if not already running."""
+    if not IS_MACOS:
+        return
+
     global _calendar_launched
     if _calendar_launched:
         return
@@ -65,6 +72,9 @@ async def _ensure_calendar_running():
 
 async def _fetch_calendar_events(cal_name: str, timeout: float = 12.0) -> list[dict]:
     """Fetch all events from one calendar, filter to today in Python."""
+    if not IS_MACOS:
+        return []
+
     script = _BULK_SCRIPT.replace("{cal_name}", cal_name)
     try:
         proc = await asyncio.create_subprocess_exec(
@@ -141,6 +151,9 @@ def _parse_applescript_date(s: str) -> datetime | None:
 
 async def refresh_cache():
     """Refresh the event cache. Called from background loop."""
+    if not IS_MACOS:
+        return
+
     global _event_cache, _cache_time, USER_CALENDARS, _auto_discovered
     await _ensure_calendar_running()
 
@@ -183,6 +196,9 @@ async def refresh_cache():
 
 async def get_todays_events() -> list[dict]:
     """Get today's events from cache. Returns cached data immediately."""
+    if not IS_MACOS:
+        return []
+
     if not _event_cache and _cache_time == 0:
         # First call — try a quick refresh
         await refresh_cache()
@@ -191,6 +207,9 @@ async def get_todays_events() -> list[dict]:
 
 async def get_upcoming_events(hours: int = 4) -> list[dict]:
     """Get events in the next N hours from cache."""
+    if not IS_MACOS:
+        return []
+
     events = await get_todays_events()
     now = datetime.now()
     cutoff = now + timedelta(hours=hours)
@@ -202,12 +221,18 @@ async def get_upcoming_events(hours: int = 4) -> list[dict]:
 
 async def get_next_event() -> dict | None:
     """Get the single next upcoming event."""
+    if not IS_MACOS:
+        return None
+
     events = await get_upcoming_events(hours=24)
     return events[0] if events else None
 
 
 async def get_calendar_names() -> list[str]:
     """Get list of all calendar names."""
+    if not IS_MACOS:
+        return []
+
     await _ensure_calendar_running()
     try:
         proc = await asyncio.create_subprocess_exec(
