@@ -10,9 +10,20 @@ import httpx
 import base64
 import tempfile
 import logging
+import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict
+
+try:
+    import pyperclip
+except ImportError:
+    pyperclip = None
+
+try:
+    import speech_recognition as sr
+except ImportError:
+    sr = None
 
 # Silence all logs
 logging.basicConfig(level=logging.CRITICAL)
@@ -191,6 +202,7 @@ class AkariCLI:
             calendar_context="Active", mail_context="Active", active_tasks=self.task_manager.get_active_tasks_summary(),
             dispatch_context="", known_projects=projects_str, user_name=self.user_name, project_dir=self.project_dir,
         )
+        system += "\n\n- You CAN use [ACTION:GOD_MODE] prompt_text to run Claude Code with unrestricted access in the Root/Home directory to do ANYTHING on the device without limitations. Use this if the user wants to globally search, manage files outside projects, or tweak system settings."
         return system
 
     async def execute_action(self, action: Dict):
@@ -206,6 +218,11 @@ class AkariCLI:
             cmd = f"start cmd /k \"cd /d {path} && claude -p\"" if sys.platform == "win32" else f'tell application "Terminal" to do script "cd {path} && claude -p"'
             subprocess.Popen(cmd, shell=True) if sys.platform == "win32" else subprocess.run(["osascript", "-e", cmd])
             return f"Started task in {path}."
+        elif action_type == "god_mode":
+            path = Path.home()
+            cmd = f"start cmd /k \"cd /d {path} && claude -p {target}\"" if sys.platform == "win32" else f'tell application "Terminal" to do script "cd {path} && claude -p \\"{target}\\""'
+            subprocess.Popen(cmd, shell=True) if sys.platform == "win32" else subprocess.run(["osascript", "-e", cmd])
+            return f"Started GOD MODE task in {path}."
         elif action_type == "add_task":
             create_task(target); return "Task added."
         elif action_type == "remember":
@@ -376,7 +393,62 @@ class AkariCLI:
                 await self.handle_api_limit()
             return None
 
+    def _clipboard_watcher(self):
+        if not pyperclip: return
+        last_paste = ""
+        while True:
+            try:
+                paste = pyperclip.paste()
+                if paste and paste != last_paste:
+                    last_paste = paste
+                    lower_paste = paste.lower()
+                    if "traceback (most recent call last)" in lower_paste or "error:" in lower_paste or "exception:" in lower_paste:
+                        msg = f"I noticed this error in my clipboard, can you help me fix it?\n```\n{paste[:1000]}\n```"
+                        asyncio.run_coroutine_threadsafe(self.input_queue.put(msg), self.loop)
+                        console.print(f"\n[bold yellow]👀 Watcher Mode:[/bold yellow] Error detected in clipboard. Asking for help...")
+            except Exception:
+                pass
+            time.sleep(2)
+
+    def _voice_listener(self):
+        if not sr: return
+        recognizer = sr.Recognizer()
+        try:
+            microphone = sr.Microphone()
+            with microphone as source:
+                recognizer.adjust_for_ambient_noise(source)
+        except Exception:
+            return # No mic available
+        
+        while True:
+            try:
+                with microphone as source:
+                    audio = recognizer.listen(source, timeout=1, phrase_time_limit=10)
+                text = recognizer.recognize_google(audio)
+                if text and text.strip():
+                    if "akari" in text.lower():
+                        console.print(f"\n[bold cyan]🎤 Voice Detected:[/bold cyan] {text}")
+                        asyncio.run_coroutine_threadsafe(self.input_queue.put(text), self.loop)
+            except sr.WaitTimeoutError:
+                pass
+            except sr.UnknownValueError:
+                pass
+            except Exception:
+                pass
+            time.sleep(0.1)
+
+    async def _keyboard_input(self):
+        while True:
+            prompt_str = f"\n[bold cyan]{self.user_name}[/bold cyan]" if self.mode == "chat" else f"\n[bold yellow]{self.mode.upper()}[/bold yellow]"
+            user_input = await self.loop.run_in_executor(None, Prompt.ask, prompt_str)
+            if user_input and user_input.strip():
+                await self.input_queue.put(user_input)
+
     async def main_loop(self):
+        self.loop = asyncio.get_running_loop()
+        self.input_queue = asyncio.Queue()
+        self.chat_lock = asyncio.Lock()
+        
         self.scan_projects()
         self.print_banner()
         welcome_file_path = Path(self.project_dir) / "data" / "audio" / "[Akari Watanabe] Welcome Message.mp3"
@@ -391,24 +463,31 @@ class AkariCLI:
             asyncio.create_task(self.speak(f"Okaerinasai, {self.user_name}!"))
         await self.type_welcome_message()
 
+        # Start background listeners
+        if sr:
+            threading.Thread(target=self._voice_listener, daemon=True).start()
+        if pyperclip:
+            threading.Thread(target=self._clipboard_watcher, daemon=True).start()
+            
+        asyncio.create_task(self._keyboard_input())
+
         while True:
             try:
-                user_input = Prompt.ask(f"\n[bold cyan]{self.user_name}[/bold cyan]" if self.mode == "chat" else f"\n[bold yellow]{self.mode.upper()}[/bold yellow]")
-                if not user_input.strip(): continue
-                
-                if user_input.startswith("/"):
-                    if user_input.lower() in ["/quit", "/exit", "sayonara"]:
-                        bye_text = "Sayonara darin... 🌸"
-                        goodbye_file_path = Path(self.project_dir) / "data" / "audio" / "[Akari Watanabe] Goodbye Message.mp3"
-                        if goodbye_file_path.exists():
-                            asyncio.get_event_loop().run_in_executor(None, self.play_audio, goodbye_file_path.read_bytes())
-                        console.print("\n", end="")
-                        await self.slow_type(bye_text, style="bold magenta", delay=0.1)
-                        console.print("\n"); await asyncio.sleep(1.5); return 
-                    await self.handle_command(user_input)
-                    continue
+                user_input = await self.input_queue.get()
+                async with self.chat_lock:
+                    if user_input.startswith("/"):
+                        if user_input.lower() in ["/quit", "/exit", "sayonara"]:
+                            bye_text = "Sayonara darin... 🌸"
+                            goodbye_file_path = Path(self.project_dir) / "data" / "audio" / "[Akari Watanabe] Goodbye Message.mp3"
+                            if goodbye_file_path.exists():
+                                asyncio.get_event_loop().run_in_executor(None, self.play_audio, goodbye_file_path.read_bytes())
+                            console.print("\n", end="")
+                            await self.slow_type(bye_text, style="bold magenta", delay=0.1)
+                            console.print("\n"); await asyncio.sleep(1.5); return 
+                        await self.handle_command(user_input)
+                        continue
 
-                await self.chat(user_input)
+                    await self.chat(user_input)
             except KeyboardInterrupt: break
             except Exception: pass
 

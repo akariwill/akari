@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "akari-cli"
-version = "0.1.7"
+version = "0.1.8"
 
 authors = [
-  { name="akariwill", email="mwildjrs23@example.com" },
+  { name="akariwill", email="mwildjrs23@gmail.com" },
 ]
 description = "Akari Watanabe AI Assistant - Voice-first CLI & Web Assistant"
 readme = "README.md"
